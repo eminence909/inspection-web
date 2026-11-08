@@ -95,7 +95,7 @@
       state = m; draw(); o.toast && o.toast('นำเข้า ' + n + ' ช่อง ตรวจแล้วกดบันทึก');
     };
     $('rs').onclick = async () => {
-      try { await o.api('rosterSave', { date, entries: entriesFromMap(state) }); o.toast && o.toast('บันทึกเวรแล้ว ✓'); o.onChange && o.onChange(date); }
+      try { await o.api('rosterSave', { date, entries: entriesFromMap(state) }); o.toast && o.toast('บันทึกเวรแล้ว'); o.onChange && o.onChange(date); }
       catch (e) { o.toast && o.toast(e.message); }
     };
     load(date);

@@ -31,53 +31,127 @@
     return `<h1>${esc(d.sheetTitle)}${sub ? ' ' + esc(sub) : ''}</h1><h2>${esc(d.activity)} ${esc(d.activityEn || '')}</h2>${line2 ? `<div class="meta">${line2}</div>` : ''}`;
   }
 
-  // ---------- ใบรายวัน (1 หน้า = 1 ชั้น) ----------
+  // ======== วางคะแนนลงบนรูปใบประเมินเดิม (tpl/*.jpg) ========
+  const PT = 96 / 72; // pt -> px (ขนาด Letter 816x1056 px)
+  const INK = '#0b2a7a';
+  const FIX_ZONE_HEADING = true; // แก้บรรทัด "เกณฑ์การประเมินห้องเรียนสะอาด" ในใบเขตพื้นที่
+  const thDig = s => String(s).replace(/[0-9]/g, d => '๐๑๒๓๔๕๖๗๘๙'[d]);
+  const SMON = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+  const G = {
+    dailyC: {
+      key: 'daily_classroom', tpl: 'daily_classroom',
+      xs: [86.8, 108.5, 130.1, 151.8, 173.4, 195.1, 216.8, 238.4, 260.1, 281.7, 303.4, 325.0, 346.6, 368.4, 389.9, 411.7, 433.3, 455.0, 476.6, 498.2, 519.9],
+      cols: ['1.1', '1.2', '1.3', '1.4', '2.1', '2.2', '2.3', '2.4', '3.1', '3.2', '3.3', '3.4', '4.1', '4.2', '4.3', '4.4', '5.1', '5.2', '5.3', '5.4'],
+      total: [519.9, 549.3], rows: [388.6, 402.7, 416.7, 430.8, 444.9, 458.9, 473.0, 487.0, 501.1, 515.1, 529.3, 543.3, 557.4],
+      hdr: { y: [349.5, 365.5], wd: [371.9, 427.1], d: [434.1, 450.7], m: [473.7, 537.1], y4: [554.0, 567.7] },
+      names1: { y: [640.7, 654.8] }, names2: { y: [705.3, 719.3] }
+    },
+    dailyZ: {
+      key: 'daily_zone', tpl: 'daily_zone',
+      xs: [86.8, 111.6, 136.5, 161.2, 186.0, 210.9, 232.5, 254.2, 275.8, 297.4, 322.2, 344.0, 365.6, 387.2, 408.9, 433.6, 455.4, 476.9, 498.7, 520.3, 545.1, 574.5],
+      cols: ['1.1', '1.2', '1.3', '1.4', 'S1', '2.1', '2.2', '2.3', '2.4', 'S2', '3.1', '3.2', '3.3', '3.4', 'S3', '4.1', '4.2', '4.3', '4.4', 'S4', 'T'],
+      rows: [347.1, 361.2, 375.2, 389.2, 403.4, 417.4, 431.5, 445.5, 459.5, 473.6, 487.8, 501.8, 515.9],
+      hdr: { y: [309.9, 324.0], wd: [380.7, 426.4], d: [434.9, 446.9], m: [467.3, 520.2], y4: [535.0, 568.8] },
+      names1: { y: [599.1, 613.1] }, names2: { y: [663.8, 677.8] }
+    },
+    week: {
+      xs: [72.0, 117.6, 177.1, 236.7, 296.2, 356.5, 416.0, 455.8, 498.0, 539.6],
+      hdrRuns: { sd: [188.9, 208.1], sm: [228.2, 290.7], sy: [305.5, 331.9], ed: [361.7, 385.7], em: [405.9, 475.5], ey: [490.3, 533.5] },
+      dateRuns: [[123.3, 137.7, 141.5, 153.5, 157.3, 171.9], [182.8, 197.2, 201.1, 213.0, 216.9, 231.4], [242.3, 256.8, 260.6, 272.6, 276.4, 290.9], [302.2, 316.7, 320.5, 332.5, 336.3, 350.8], [362.1, 376.6, 380.4, 392.4, 396.2, 410.7]]
+    },
+    month: { xs: [72.0, 117.6, 177.1, 236.7, 296.1, 356.4, 405.0, 455.8, 539.6] }
+  };
+  G.weekC = Object.assign({ tpl: 'week_classroom', rows: [466.5, 482.8, 499.1, 515.5, 531.8, 548.1, 564.5, 580.8, 597.1, 613.4, 629.7, 646.1, 662.4], hy: [404.5, 418.5], dy: [452.5, 466.5], fix: { x: [423.2, 449.2], y: [436.7, 450.7] } }, G.week);
+  G.weekZ = Object.assign({ tpl: 'week_zone', rows: [445.5, 461.8, 478.1, 494.5, 510.8, 527.1, 543.5, 559.8, 576.1, 592.4, 608.7, 625.1, 641.4], hy: [383.5, 397.5], dy: [431.5, 445.5], fix: { x: [423.2, 449.2], y: [415.7, 429.7] } }, G.week);
+  G.monC = Object.assign({ tpl: 'month_classroom', rows: [442.9, 459.1, 475.6, 491.9, 508.2, 524.5, 540.8, 557.2, 573.5, 589.8, 606.1, 622.4, 638.8], hy: [380.9, 394.9], fix: { x: [368.0, 394.0], y: [413.1, 427.1] } }, G.month);
+  G.monZ = Object.assign({ tpl: 'month_zone', rows: [445.4, 461.9, 478.2, 494.5, 510.8, 527.1, 543.5, 559.8, 576.1, 592.4, 608.7, 625.1, 641.4], hy: [383.6, 397.6], fix: { x: [368.0, 394.0], y: [415.7, 429.7] } }, G.month);
+
+  // กล่องข้อความวางทับตามพิกัด pt
+  function T(x0, x1, y0, y1, text, o) {
+    o = o || {};
+    if (text === '' || text == null) return '';
+    const fs = o.fs || 13, al = o.align === 'left' ? 'flex-start' : 'center';
+    return `<div style="position:absolute;left:${x0 * PT}px;top:${y0 * PT}px;width:${(x1 - x0) * PT}px;height:${(y1 - y0) * PT}px;display:flex;align-items:center;justify-content:${al};text-align:center;font:${o.bold ? 700 : 500} ${fs}px/1.05 'Sarabun',sans-serif;color:${o.color || INK};overflow:hidden;white-space:${o.wrap ? 'normal' : 'nowrap'}">${esc(text)}</div>`;
+  }
+  const R = (x0, x1, y0, y1) => `<div style="position:absolute;left:${x0 * PT}px;top:${y0 * PT}px;width:${(x1 - x0) * PT}px;height:${(y1 - y0) * PT}px;background:#fff"></div>`;
+  const RI = (x0, x1, y0, y1) => R(x0 + 0.9, x1 - 0.9, y0 + 0.9, y1 - 0.9); // ลบเส้นแบ่งช่องภายในแถว
+  function tplPage(tpl, level, inner) {
+    return `<div class="pg tp" style="width:816px;height:1056px;padding:0;background:#fff"><img src="tpl/${tpl}-${level}.jpg" style="position:absolute;left:0;top:0;width:816px;height:1056px">${inner}</div>`;
+  }
+  const WDN = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'];
+  const MFULL = MONTHS;
+
+  // ---------- ใบรายวัน: ใช้ใบเดิม 1 หน้า/ชั้น ----------
   function dailyPage(kind, date, level, data, cfg) {
-    const def = CR[kind], items = [];
-    def.categories.forEach(c => c.items.forEach(i => items.push(i)));
+    const g = kind === 'classroom' ? G.dailyC : G.dailyZ, def = CR[kind];
     const by = {}; data.inspections.filter(r => r.level === String(level)).forEach(r => by[r.room] = r);
     const un = {}; data.unavail.filter(u => u.level === String(level)).forEach(u => un[u.room] = u);
     const team = data.teams.find(t => t.level === String(level)), names = team ? team.names : [];
-    let t = '<table><tr><th rowspan="2" style="width:46px">ห้อง</th>' +
-      def.categories.map(c => `<th colspan="${c.items.length + 1}" class="s">${c.no}. ${esc(c.title)}</th>`).join('') + '<th rowspan="2" style="width:46px">รวม<br>(100)</th></tr><tr>' +
-      def.categories.map(c => c.items.map(i => `<th>${i.id}<div class="s" style="font-weight:400">(${i.max})</div></th>`).join('') + `<th class="s">รวม<br>${c.max}</th>`).join('') + '</tr>';
+    const p = dparts(date);
+    let h = T(g.hdr.wd[0], g.hdr.wd[1], g.hdr.y[0], g.hdr.y[1], WDN[p.w], { fs: 12 }) + T(g.hdr.d[0], g.hdr.d[1], g.hdr.y[0], g.hdr.y[1], String(p.d), { fs: 12 }) +
+      T(g.hdr.m[0], g.hdr.m[1], g.hdr.y[0], g.hdr.y[1], MFULL[p.m - 1], { fs: 12 }) + T(g.hdr.y4[0], g.hdr.y4[1], g.hdr.y[0], g.hdr.y[1], String(p.y), { fs: 10 });
+    const cellX = kind === 'classroom'
+      ? i => [g.xs[i], g.xs[i + 1]]
+      : i => [g.xs[i], g.xs[i + 1]];
     for (let r = 1; r <= CR.ROOMS; r++) {
-      const x = by[r];
-      t += `<tr style="height:30px"><td><b>${level}/${r}</b></td>`;
-      if (x) {
-        const tt = K.dailyTotals(kind, x.scores);
-        t += def.categories.map((c, ci) => c.items.map(i => `<td>${x.scores[i.id]}</td>`).join('') + `<td style="background:#eef2f0"><b>${tt.cats[ci].sum}</b></td>`).join('') + `<td><b>${tt.total}</b></td>`;
-      } else t += `<td colspan="${items.length + def.categories.length + 1}" class="s">${un[r] ? '🔒 ' + esc(un[r].reason + (un[r].text ? ' (' + un[r].text + ')' : '')) : NA}</td>`;
-      t += '</tr>';
+      const y0 = g.rows[r - 1], y1 = g.rows[r], x = by[r];
+      if (!x) {
+        const first = g.xs[0], last = kind === 'classroom' ? g.xs[g.xs.length - 1] : g.xs[g.xs.length - 2];
+        h += RI(first, last, y0, y1) + T(first, last, y0, y1, un[r] ? 'ไม่ได้ตรวจ' + (un[r].reason ? ' : ' + un[r].reason : '') : 'ไม่มีการประเมิน', { fs: 11 });
+        continue;
+      }
+      const tt = K.dailyTotals(kind, x.scores);
+      g.cols.forEach((c, i) => {
+        const [a, b] = cellX(i);
+        let v;
+        if (c === 'T') v = tt.total; else if (c[0] === 'S') v = tt.cats[Number(c[1]) - 1].sum; else v = x.scores[c];
+        h += T(a, b, y0, y1, v, { fs: 13, bold: c === 'T' || c[0] === 'S' });
+      });
+      if (kind === 'classroom') h += T(g.total[0], g.total[1], y0, y1, tt.total, { fs: 13, bold: true });
     }
-    t += '</table>';
-    const sl = [0, 1, 2].map(i => ({ role: 'ผู้ตรวจ ' + (i + 1), name: names[i] || '' }))
-      .concat([{ role: 'หัวหน้าอาคาร', name: cfg.headBuilding }, { role: 'ประธานสภานักเรียน', name: cfg.councilPresident }, { role: 'ที่ปรึกษาสภานักเรียน', name: cfg.advisor }]);
-    return `<div class="pg l">${head(kind, 'ประจำวัน', `<span><b>ระดับชั้นมัธยมศึกษาปีที่ ${level}</b></span><span>${thFull(date)}</span><span>${esc(cfg.term || '')}</span>`)}${t}${sigBlock(sl)}</div>`;
+    if (kind === 'zone' && FIX_ZONE_HEADING) h += R(72, 345, 217.5, 232.5) + T(72, 460, 217.9, 231.9, 'เกณฑ์การประเมินเขตพื้นที่รับผิดชอบ รวมพลังจิตอาสา พัฒนาเขตพื้นที่', { fs: 14, bold: true, color: '#000', align: 'left' });
+    const sx = [[78.3, 201.5], [246.8, 370.1], [412.1, 535.4]];
+    sx.forEach((s, i) => { h += T(s[0] + 6, s[1] - 6, g.names1.y[0], g.names1.y[1], names[i] || '', { fs: 11 }); });
+    [cfg.headBuilding, cfg.councilPresident, cfg.advisor].forEach((n, i) => { if (n) h += T(sx[i][0] + 6, sx[i][1] - 6, g.names2.y[0], g.names2.y[1], n, { fs: 11 }); });
+    return tplPage(g.tpl, level, h);
   }
 
   // ---------- สรุปรายสัปดาห์ ----------
-  function weekPage(kind, w, L, cfg) {
-    let t = `<table><tr><th rowspan="2" style="width:56px">ห้อง</th>${w.dates.map((d, i) => `<th>${['จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์'][i]}<div class="s" style="font-weight:400">${thShort(d)}</div></th>`).join('')}<th rowspan="2">รวมคะแนน<br>(เต็ม 500)</th><th rowspan="2">ร้อยละ</th><th rowspan="2">ผลการประเมิน</th></tr><tr>${w.dates.map(() => '<th class="s">(100)</th>').join('')}</tr>`;
-    L.rooms.forEach(r => {
-      t += `<tr style="height:30px" class="${r.medal ? r.medal.key : ''}"><td><b>${L.level}/${r.room}</b></td>` + r.days.map(d => d === null ? `<td class="s">${NA}</td>` : `<td>${d}</td>`).join('') +
-        (r.count ? `<td><b>${r.total}</b></td><td>${pct(r.percent)}</td><td>${esc(r.medal.label)}</td>` : `<td colspan="3" class="s">${NA}</td>`) + '</tr>';
+  const SHORT = { gold: 'ทอง', silver: 'เงิน', bronze: 'ทองแดง', pass: 'ผ่านเบื้องต้น', fail: 'ไม่ผ่าน' };
+  function weekPage(kind, w, L) {
+    const g = kind === 'classroom' ? G.weekC : G.weekZ, xs = g.xs;
+    let h = '';
+    const a = dparts(w.dates[0]), e = dparts(w.dates[4]), hr = g.hdrRuns;
+    h += T(hr.sd[0], hr.sd[1], g.hy[0], g.hy[1], a.d) + T(hr.sm[0], hr.sm[1], g.hy[0], g.hy[1], MFULL[a.m - 1]) + T(hr.sy[0], hr.sy[1], g.hy[0], g.hy[1], a.y) +
+      T(hr.ed[0], hr.ed[1], g.hy[0], g.hy[1], e.d) + T(hr.em[0], hr.em[1], g.hy[0], g.hy[1], MFULL[e.m - 1]) + T(hr.ey[0], hr.ey[1], g.hy[0], g.hy[1], e.y);
+    w.dates.forEach((d, i) => {
+      const p = dparts(d), r = g.dateRuns[i];
+      h += T(r[0], r[1], g.dy[0], g.dy[1], p.d, { fs: 9 }) + T(r[2], r[3], g.dy[0], g.dy[1], p.m, { fs: 9 }) + T(r[4], r[5], g.dy[0], g.dy[1], String(p.y).slice(2), { fs: 9 });
     });
-    t += '</table><div style="font-size:11px;margin-top:6px">เกณฑ์: ร้อยละ 80–100 เหรียญทอง · 70–79 เหรียญเงิน · 60–69 เหรียญทองแดง · 50–59 ผ่านเกณฑ์เบื้องต้น · ต่ำกว่า 50 ไม่ผ่านเกณฑ์ (คิดเฉพาะวันที่มีการประเมิน)</div>';
-    const sl = [{ role: 'หัวหน้าอาคาร', name: cfg.headBuilding }, { role: 'ประธานสภานักเรียน', name: cfg.councilPresident }, { role: 'ที่ปรึกษาสภานักเรียน', name: cfg.advisor }];
-    return `<div class="pg l">${head(w.kind, 'สรุปผลรายสัปดาห์', `<span><b>ระดับชั้นมัธยมศึกษาปีที่ ${L.level}</b></span><span>วันที่ ${thLong(w.dates[0])} – ${thLong(w.dates[4])}</span><span>${esc(cfg.term || '')}</span>`)}${t}${sigBlock(sl)}</div>`;
+    h += R(g.fix.x[0], g.fix.x[1], g.fix.y[0], g.fix.y[1]) + T(g.fix.x[0] - 4, g.fix.x[1] + 4, g.fix.y[0], g.fix.y[1], '(' + thDig(500) + ')', { fs: 12, color: '#000' });
+    L.rooms.forEach((r, i) => {
+      const y0 = g.rows[i], y1 = g.rows[i + 1];
+      r.days.forEach((d, k) => { h += d === null ? T(xs[k + 1], xs[k + 2], y0, y1, 'ไม่มีการประเมิน', { fs: 7.5, wrap: true }) : T(xs[k + 1], xs[k + 2], y0, y1, d, { fs: 13 }); });
+      if (r.count) h += T(xs[6], xs[7], y0, y1, r.total, { fs: 13, bold: true }) + T(xs[7], xs[8], y0, y1, pct(r.percent), { fs: 11.5 }) + T(xs[8], xs[9], y0, y1, SHORT[r.medal.key], { fs: 9.5, wrap: true });
+      else h += RI(xs[6], xs[9], y0, y1) + T(xs[6], xs[9], y0, y1, 'ไม่มีการประเมิน', { fs: 10 });
+    });
+    return tplPage(g.tpl, L.level, h);
   }
 
   // ---------- สรุปรายเดือน ----------
-  function monthPage(kind, m, L, cfg) {
-    let t = `<table><tr><th style="width:56px">ห้อง</th>${m.mondays.map((d, i) => `<th>สัปดาห์ที่ ${i + 1}<div class="s" style="font-weight:400">ร้อยละ</div></th>`).join('')}<th>รวมคะแนน<br>(เต็ม 400)</th><th>ร้อยละ</th><th>ผลการประเมิน</th><th>รางวัล</th></tr>`;
-    L.rooms.forEach(r => {
-      t += `<tr style="height:30px" class="${r.medal ? r.medal.key : ''}"><td><b>${L.level}/${r.room}</b></td>` + r.weeks.map(x => x === null ? `<td class="s">${NA}</td>` : `<td>${pct(x)}</td>`).join('') +
-        (r.count ? `<td><b>${pct(r.total)}</b></td><td>${pct(r.percent)}</td><td>${esc(r.medal.label)}</td><td><b>${esc(r.award || '')}</b></td>` : `<td colspan="4" class="s">${NA}</td>`) + '</tr>';
+  function monthPage(kind, m, L) {
+    const g = kind === 'classroom' ? G.monC : G.monZ, xs = g.xs;
+    const s = dparts(m.mondays[0]), e = dparts(SM.addDays(m.mondays[3], 4));
+    let h = T(165, 533, g.hy[0], g.hy[1], `${MFULL[s.m - 1]} ${s.y}  (${s.d} ${SMON[s.m - 1]} – ${e.d} ${SMON[e.m - 1]} ${e.y})`, { fs: 12, align: 'left' });
+    h += R(g.fix.x[0], g.fix.x[1], g.fix.y[0], g.fix.y[1]) + T(g.fix.x[0] - 4, g.fix.x[1] + 4, g.fix.y[0], g.fix.y[1], '(' + thDig(400) + ')', { fs: 12, color: '#000' });
+    L.rooms.forEach((r, i) => {
+      const y0 = g.rows[i], y1 = g.rows[i + 1];
+      r.weeks.forEach((v, k) => { h += v === null ? T(xs[k + 1], xs[k + 2], y0, y1, 'ไม่มีการประเมิน', { fs: 7.5, wrap: true }) : T(xs[k + 1], xs[k + 2], y0, y1, pct(v), { fs: 12 }); });
+      if (r.count) h += T(xs[5], xs[6], y0, y1, pct(r.total), { fs: 12, bold: true }) + T(xs[6], xs[7], y0, y1, pct(r.percent), { fs: 12 }) + T(xs[7], xs[8], y0, y1, r.award || '', { fs: 10.5, bold: !!r.award });
+      else h += RI(xs[5], xs[8], y0, y1) + T(xs[5], xs[8], y0, y1, 'ไม่มีการประเมิน', { fs: 10 });
     });
-    t += `</table><div style="font-size:11px;margin-top:6px">รางวัลจัดอันดับในแต่ละระดับชั้น · เมื่อคะแนนเท่ากันพิจารณา${kind === 'classroom' ? 'หมวด 4 แล้วหมวด 5' : 'หมวด 4'} · สัปดาห์ที่ไม่มีการประเมินไม่นำมาคิด</div>`;
-    const sl = [{ role: 'หัวหน้าอาคาร', name: cfg.headBuilding }, { role: 'ประธานสภานักเรียน', name: cfg.councilPresident }, { role: 'ที่ปรึกษาสภานักเรียน', name: cfg.advisor }, { role: 'รองผู้อำนวยการฝ่ายบริหารงานทั่วไป', name: cfg.deputyDirector }, { role: 'ผู้อำนวยการโรงเรียน', name: cfg.director }];
-    return `<div class="pg l">${head(kind, 'สรุปผลรายเดือน', `<span><b>ระดับชั้นมัธยมศึกษาปีที่ ${L.level}</b></span><span>วันที่ ${thLong(m.mondays[0])} – ${thLong(SM.addDays(m.mondays[3], 4))}</span><span>${esc(cfg.term || '')}</span>`)}${t}${sigBlock(sl)}</div>`;
+    if (kind === 'zone' && FIX_ZONE_HEADING) { /* ใบสรุปเขตไม่มีบรรทัดนี้ */ }
+    return tplPage(g.tpl, L.level, h);
   }
 
   // ---------- ใบเวร ----------
@@ -101,7 +175,7 @@
   }
 
   // ---------- เครื่องยนต์วาดเป็น PDF ----------
-  async function build(pageHtml, landscape) {
+  async function build(pageHtml, landscape, fmt) {
     if (!root.html2canvas || !root.jspdf) throw new Error('โหลดตัวสร้าง PDF ไม่สำเร็จ (ต้องต่ออินเทอร์เน็ต)');
     if (document.fonts && document.fonts.ready) await document.fonts.ready;
     const box = document.createElement('div');
@@ -109,8 +183,10 @@
     box.innerHTML = `<style>${CSS}</style>` + pageHtml.join('');
     document.body.appendChild(box);
     try {
-      const pdf = new root.jspdf.jsPDF({ orientation: landscape ? 'l' : 'p', unit: 'mm', format: 'a4' });
-      const W = landscape ? 297 : 210, H = landscape ? 210 : 297;
+      const letter = fmt === 'letter';
+      const pdf = new root.jspdf.jsPDF({ orientation: landscape ? 'l' : 'p', unit: 'mm', format: letter ? [215.9, 279.4] : 'a4' });
+      const W = letter ? 215.9 : (landscape ? 297 : 210), H = letter ? 279.4 : (landscape ? 210 : 297);
+      await Promise.all(Array.from(box.querySelectorAll('img')).map(im => im.complete ? 0 : new Promise(r => { im.onload = im.onerror = r; })));
       const pages = box.querySelectorAll('.pg');
       for (let i = 0; i < pages.length; i++) {
         const c = await root.html2canvas(pages[i], { scale: 2, backgroundColor: '#fff' });
@@ -128,13 +204,13 @@
       let pages, name, ref;
       if (o.type === 'week') {
         const w = Object.assign({ kind: o.kind }, o.cur.w);
-        pages = w.levels.map(L => weekPage(w.kind, w, L, cfg)); ref = o.week;
+        pages = w.levels.map(L => weekPage(w.kind, w, L)); ref = o.week;
         name = `สรุปรายสัปดาห์_${o.kind}_${o.week}.pdf`;
       } else {
-        const m = o.cur.m; pages = m.levels.map(L => monthPage(o.kind, m, L, cfg)); ref = o.cycle;
+        const m = o.cur.m; pages = m.levels.map(L => monthPage(o.kind, m, L)); ref = o.cycle;
         name = `สรุปรายเดือน_${o.kind}_${o.cycle}.pdf`;
       }
-      const pdf = await build(pages, true);
+      const pdf = await build(pages, false, 'letter');
       pdf.save(name);
       try { await o.api('adminSavePdf', { kind: o.kind, type: o.type, ref, base64: b64(pdf) }); } catch (e) { console.warn('บันทึกลง Drive ไม่สำเร็จ', e.message); }
       return name;
@@ -142,7 +218,7 @@
     async daily(o) { // ใบรายวัน ม.1-6
       const cfg = await o.api('adminGetConfig');
       const data = await o.api('adminList', { kind: o.kind, from: o.date, to: o.date });
-      const pdf = await build(CR.LEVELS.map(l => dailyPage(o.kind, o.date, l, data, cfg)), true);
+      const pdf = await build(CR.LEVELS.map(l => dailyPage(o.kind, o.date, l, data, cfg)), false, 'letter');
       pdf.save(`ใบประเมินรายวัน_${o.kind}_${o.date}.pdf`);
     },
     async roster(o) {
@@ -153,6 +229,7 @@
     }
   };
   PDFX._pages = { dailyPage, weekPage, monthPage, rosterPage };
+  PDFX._G = G;
   root.PDFX = PDFX;
   if (typeof module !== 'undefined' && module.exports) module.exports = { dailyPage, weekPage, monthPage, rosterPage };
 })(typeof window !== 'undefined' ? window : this);

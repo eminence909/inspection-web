@@ -44,7 +44,7 @@
     document.getElementById('logout').hidden = false;
     const tabs = [['daily', 'ผลรายวัน / แก้ไข'], ['weekly', 'สรุปรายสัปดาห์'], ['monthly', 'สรุปรายเดือน'], ['roster', 'เวร / สถานะการส่ง'], ['settings', 'ตั้งค่า']];
     $app.innerHTML = `<div class="tabs" id="tabs">${tabs.map(t => `<button data-t="${t[0]}" class="${st.tab === t[0] ? 'on' : ''}">${t[1]}</button>`).join('')}</div>
-      <div class="seg" style="margin-bottom:12px"><button class="tile ${st.kind === 'zone' ? 'sel' : ''}" data-k="zone">🌳 เขตพื้นที่</button><button class="tile ${st.kind === 'classroom' ? 'sel' : ''}" data-k="classroom">🏫 ห้องเรียน</button></div>
+      <div class="seg" style="margin-bottom:14px"><button class="tile ${st.kind === 'zone' ? 'sel' : ''}" data-k="zone">เขตพื้นที่</button><button class="tile ${st.kind === 'classroom' ? 'sel' : ''}" data-k="classroom">ห้องเรียน</button></div>
       <div id="pane"></div>`;
     document.querySelectorAll('#tabs button').forEach(b => b.onclick = () => { st.tab = b.dataset.t; shell(); });
     document.querySelectorAll('[data-k]').forEach(b => b.onclick = () => { st.kind = b.dataset.k; st.week = null; shell(); });
@@ -69,7 +69,7 @@
       for (let r = 1; r <= CR.ROOMS; r++) {
         const x = by[r];
         if (x) h += `<tr data-key="${esc(x.key)}"><td class="l"><b>${st.level}/${r}</b></td>${items.map(i => `<td><input data-i="${i.id}" data-max="${i.max}" value="${x.scores[i.id]}" inputmode="numeric"></td>`).join('')}<td><b class="tt">${x.total}</b></td></tr>`;
-        else h += `<tr><td class="l"><b>${st.level}/${r}</b></td><td colspan="${items.length + 1}" class="na l">${un[r] ? '🔒 ' + esc(un[r].reason + (un[r].text ? ' · ' + un[r].text : '')) : NA}</td></tr>`;
+        else h += `<tr><td class="l"><b>${st.level}/${r}</b></td><td colspan="${items.length + 1}" class="na l">${un[r] ? esc(un[r].reason + (un[r].text ? ' · ' + un[r].text : '')) : NA}</td></tr>`;
       }
       document.getElementById('tbl').outerHTML = h + '</table></div><div class="row"><button class="btn sec" id="hist" style="margin-top:12px">ดูประวัติการแก้ไข</button><button class="btn warn" id="dpdf" style="margin-top:12px">PDF ใบรายวัน ม.1–6</button></div><div id="hl"></div>';
       pane().querySelectorAll('input[data-i]').forEach(inp => { inp.dataset.old = inp.value; inp.onchange = async () => {
@@ -99,7 +99,7 @@
     pane().querySelectorAll('[data-w]').forEach(b => b.onclick = () => { st.week = b.dataset.w; weekly(); });
   }
   async function weekView() {
-    pane().innerHTML = `<div class="card"><div class="tb"><button class="btn sec" id="bk" style="margin:0;flex:0 0 100px">← กลับ</button>
+    pane().innerHTML = `<div class="card"><div class="tb"><button class="btn sec" id="bk" style="margin:0;flex:0 0 100px">กลับ</button>
       <b style="flex:2">สรุป${kn()} ${thd(st.week)} – ${thd(SM.addDays(st.week, 4))}</b>
       <button class="btn" id="up" style="margin:0">อัปเดต</button><button class="btn warn" id="pdf" style="margin:0">PDF</button></div><div id="wv" class="spin">กำลังโหลด...</div></div>`;
     document.getElementById('bk').onclick = () => { st.week = null; weekly(); };
@@ -146,7 +146,7 @@
     };
   }
   async function monthView() {
-    pane().innerHTML = `<div class="card"><div class="tb"><button class="btn sec" id="bk" style="margin:0;flex:0 0 100px">← กลับ</button>
+    pane().innerHTML = `<div class="card"><div class="tb"><button class="btn sec" id="bk" style="margin:0;flex:0 0 100px">กลับ</button>
       <b style="flex:2">สรุป${kn()}รายเดือน ${thd(st.cycle)} – ${thd(SM.addDays(st.cycle, 25))}</b>
       <button class="btn" id="up" style="margin:0">อัปเดต</button><button class="btn warn" id="pdf" style="margin:0">PDF</button></div><div id="mv" class="spin">กำลังโหลด...</div></div>`;
     document.getElementById('bk').onclick = () => { st.cycle = null; monthly(); };
@@ -192,9 +192,9 @@
         const done = data.inspections.filter(x => x.level === String(l)).length, un = data.unavail.filter(x => x.level === String(l)).length;
         const team = data.teams.find(t => t.level === String(l));
         let tag;
-        if (done + un >= CR.ROOMS) tag = '<span class="badge">✓ ส่งครบ ' + done + '/' + CR.ROOMS + (un ? ' · ตรวจไม่ได้ ' + un : '') + '</span>';
-        else if (done + un > 0) tag = '<span class="badge" style="background:#fff3c4;color:#92600a">ส่งแล้ว ' + done + '/' + CR.ROOMS + (un ? ' · ตรวจไม่ได้ ' + un : '') + '</span>';
-        else tag = '<span class="badge" style="background:#fde8e6;color:#c0392b">ยังไม่ส่ง</span>';
+        if (done + un >= CR.ROOMS) tag = '<span class="badge">ส่งครบ ' + done + '/' + CR.ROOMS + (un ? ' · ตรวจไม่ได้ ' + un : '') + '</span>';
+        else if (done + un > 0) tag = '<span class="badge warn">ส่งแล้ว ' + done + '/' + CR.ROOMS + (un ? ' · ตรวจไม่ได้ ' + un : '') + '</span>';
+        else tag = '<span class="badge bad">ยังไม่ส่ง</span>';
         const used = team ? team.names.join(', ') : '';
         return `<tr><td><b>ม.${l}</b></td><td class="l">${esc(names.join(', ')) || '<span class="na">ไม่ได้จัดเวร</span>'}${used && used !== names.join(', ') ? '<br><span class="na">ผู้ตรวจจริง: ' + esc(used) + '</span>' : ''}</td><td>${tag}</td></tr>`;
       };
@@ -204,7 +204,7 @@
         const n = x[2].inspections.filter(i => i.level === String(l)).length + x[2].unavail.filter(i => i.level === String(l)).length;
         if (n < CR.ROOMS) pend.push(x[0] + ' ม.' + l + (n ? ' (' + n + '/' + CR.ROOMS + ')' : ''));
       }));
-      const banner = pend.length ? `<div class="note" style="margin-top:10px;background:#fde8e6;border-color:#f1b8b2"><b>ยังส่งไม่ครบ:</b> ${esc(pend.join(' · '))}</div>` : '<div class="note" style="margin-top:10px;background:#e6f5ee;border-color:#9bd3b8"><b>ส่งใบประเมินครบทุกชั้นแล้ว ✓</b></div>';
+      const banner = pend.length ? `<div class="note bad" style="margin-top:10px"><b>ยังส่งไม่ครบ:</b> ${esc(pend.join(' · '))}</div>` : '<div class="note ok" style="margin-top:10px"><b>ส่งใบประเมินครบทุกชั้นแล้ว</b></div>';
       document.getElementById('stt').outerHTML = banner + tbl('ตรวจห้องเรียน', 'classroom', cl) + tbl('ตรวจเขตพื้นที่', 'zone', zn) + '<div class="muted" style="margin-top:8px">แก้ไขรายชื่อเวรได้ในส่วนด้านล่าง</div>';
     } catch (e) { document.getElementById('stt').textContent = e.message; }
   }

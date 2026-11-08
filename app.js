@@ -3,6 +3,12 @@
   const CR = window.CRITERIA, K = window.CALC;
   const $app = document.getElementById('app');
   const $back = document.getElementById('back');
+  const IC = {
+    arrow: '<svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>',
+    leaf: '<svg viewBox="0 0 24 24"><path d="M11 20A7 7 0 0 1 4 13c0-6 6-9 16-9 0 10-3 16-9 16z"/><path d="M4 21c3-6 6-9 11-12"/></svg>',
+    school: '<svg viewBox="0 0 24 24"><path d="M3 21h18M5 21V9l7-5 7 5v12"/><path d="M9 21v-6h6v6M12 10h.01"/></svg>',
+    list: '<svg viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 9h6M9 13h6M9 17h4"/></svg>'
+  };
   const S = { kind: null, date: null, level: null, team: null, status: null, init: null, room: null, scores: {}, editing: false, stack: [] };
 
   // ---------- util ----------
@@ -41,24 +47,27 @@
     }
     S.date = S.date || S.init.today;
     $app.innerHTML = `
-      <div class="card"><h2>${esc(S.init.schoolName || 'สภานักเรียน')}</h2>
-        <div class="muted">${esc(S.init.term || '')}</div></div>
+      <section class="hero"><div class="bigword">CLEAN</div>
+        <div class="eyebrow">สภานักเรียน · ${esc(S.init.schoolName || '')}</div>
+        <h1>ตรวจห้องเรียน<br>และเขตพื้นที่</h1>
+        <p>${esc(S.init.term || '')}</p></section>
+      <div class="stats"><div><b>6</b><span>ระดับชั้น</span></div><div><b>72</b><span>ห้อง</span></div><div><b>100</b><span>คะแนนเต็ม</span></div><div><b>2</b><span>รูปแบบการตรวจ</span></div></div>
       <div class="card"><label for="dt">วันที่ตรวจ</label>
         <input type="date" id="dt" value="${S.date}" max="${S.init.today}">
-        <div class="muted" id="dtl">${thDate(S.date)}</div></div>
+        <div class="muted" id="dtl" style="margin-top:6px">${thDate(S.date)}</div></div>
       <div class="menu">
-        <button class="z" data-k="zone">🌳 ตรวจเขตพื้นที่<small>Sripisai Clean Zone</small></button>
-        <button class="c" data-k="classroom">🏫 ตรวจห้องเรียน<small>The SMART Classroom</small></button>
+        <button class="mcard" data-k="zone"><span class="go">${IC.arrow}</span><span class="ic">${IC.leaf}</span><span><b>ตรวจเขตพื้นที่</b><small>Sripisai Clean Zone</small></span></button>
+        <button class="mcard" data-k="classroom"><span class="go">${IC.arrow}</span><span class="ic">${IC.school}</span><span><b>ตรวจห้องเรียน</b><small>The SMART Classroom</small></span></button>
       </div>
-      <button class="btn sec" id="rosterBtn" style="margin-top:12px">📋 ดูเวรประจำวัน</button>
-      <div style="text-align:center;margin-top:14px"><a href="roster.html" class="muted">สำหรับผู้จัดเวร</a></div>`;
+      <button class="rowbtn" id="rosterBtn"><span class="ic">${IC.list}</span><span class="t">ดูเวรประจำวัน</span>${IC.arrow.replace('<svg','<svg width="18" height="18" style="stroke:currentColor;fill:none;stroke-width:2"')}</button>
+      <div style="text-align:center;margin-top:16px"><a href="roster.html" class="muted">สำหรับผู้จัดเวร</a></div>`;
     document.getElementById('rosterBtn').onclick = viewRoster;
     const dt = document.getElementById('dt');
     dt.onchange = () => {
       if (!dt.value || dt.value > S.init.today) { dt.value = S.init.today; toast('เลือกวันที่ล่วงหน้าไม่ได้'); }
       S.date = dt.value; document.getElementById('dtl').textContent = thDate(S.date);
     };
-    $app.querySelectorAll('.menu button').forEach(b => b.onclick = () => { S.kind = b.dataset.k; pickLevel(); });
+    $app.querySelectorAll('.mcard').forEach(b => b.onclick = () => { S.kind = b.dataset.k; pickLevel(); });
   }
 
   // ---------- ดูเวร ----------
@@ -107,8 +116,8 @@
         <div class="muted" style="margin-top:6px">เลือกแล้ว ${tmp.names.length}/3 คน</div></div>`;
       if (S.kind === 'classroom') {
         h += `<div class="card"><h2>อาคารเรียนวันนี้</h2><div class="seg">
-          <button class="tile ${tmp.open === 'open' ? 'sel' : ''}" data-o="open">✅ เปิด</button>
-          <button class="tile ${tmp.open === 'closed' ? 'sel' : ''}" data-o="closed">🔒 ปิด/บางห้องเข้าไม่ได้</button></div></div>`;
+          <button class="tile ${tmp.open === 'open' ? 'sel' : ''}" data-o="open">อาคารเปิด</button>
+          <button class="tile ${tmp.open === 'closed' ? 'sel' : ''}" data-o="closed">ปิด / บางห้องเข้าไม่ได้</button></div></div>`;
         if (tmp.open === 'closed') h += unavailCard();
       }
       h += `<button class="btn" id="go">ถัดไป</button>`;
@@ -188,8 +197,8 @@
       <button class="btn sec" id="et" style="margin:0;flex:0 0 120px;padding:8px">แก้ไขทีม</button></div></div>
       <div class="card"><h2>ห้อง ม.${S.level}/1–${CR.ROOMS} <span class="muted">(ตรวจแล้ว ${n}/${CR.ROOMS})</span></h2><div class="grid">`;
     for (let r = 1; r <= CR.ROOMS; r++) {
-      if (un[r]) h += `<button class="tile un" data-r="${r}" data-s="un">${S.level}/${r}<small>🔒 ${esc(un[r].reason || 'ตรวจไม่ได้')}</small></button>`;
-      else if (done[r]) h += `<button class="tile done" data-r="${r}" data-s="done">${S.level}/${r}<small>✓ ตรวจแล้ว ${done[r].total}</small></button>`;
+      if (un[r]) h += `<button class="tile un" data-r="${r}" data-s="un">${S.level}/${r}<small>${esc(un[r].reason || 'ตรวจไม่ได้')}</small></button>`;
+      else if (done[r]) h += `<button class="tile done" data-r="${r}" data-s="done">${S.level}/${r}<small>ตรวจแล้ว ${done[r].total}</small></button>`;
       else h += `<button class="tile" data-r="${r}" data-s="new">${S.level}/${r}<small>ยังไม่ตรวจ</small></button>`;
     }
     $app.innerHTML = h + '</div></div>';
@@ -225,7 +234,7 @@
         const vals = []; for (let v = it.max; v >= lo[0]; v--) vals.push(v);
         h += `<div class="item" data-id="${it.id}"><div class="t">${it.id} ${esc(it.title)} <span>(เต็ม ${it.max})</span></div>
           <div class="opts">${vals.map(v => `<button class="opt" data-v="${v}">${v}</button>`).join('')}</div>
-          <button class="info" type="button">ดูเกณฑ์คะแนน ▾</button>
+          <button class="info" type="button">ดูเกณฑ์คะแนน</button>
           <div class="bands">${it.bands.map(b => `<div><b>${b[0] === b[1] ? b[0] : b[0] + '–' + b[1]}</b> · ${esc(b[2])}</div>`).join('')}</div></div>`;
       });
     });
@@ -263,7 +272,7 @@
     h += `</table><div class="tot">รวมทั้งหมด ${t.total} / 100</div></div>`;
     $app.innerHTML = h;
     if (viewOnly) return bar('<button class="btn sec" id="ok" style="margin:0">กลับ</button>'), document.getElementById('ok').onclick = rooms;
-    bar('<button class="btn sec" id="bk" style="margin:0;flex:1">← แก้ไข</button><button class="btn" id="sb" style="margin:0;flex:2">ยืนยันส่งผลตรวจ</button>');
+    bar('<button class="btn sec" id="bk" style="margin:0;flex:1">แก้ไข</button><button class="btn" id="sb" style="margin:0;flex:2">ยืนยันส่งผลตรวจ</button>');
     document.getElementById('bk').onclick = form;
     document.getElementById('sb').onclick = submit;
   }
@@ -276,7 +285,7 @@
         const r = await api('submit', base);
         if (r.already) { toast('ห้องนี้ตรวจแล้ว'); S.status = await api('status', { kind: S.kind, date: S.date, level: S.level }); return rooms(); }
       }
-      clearDraft(); toast('บันทึกผลตรวจเรียบร้อย ✓');
+      clearDraft(); toast('บันทึกผลตรวจเรียบร้อย');
       S.status = await api('status', { kind: S.kind, date: S.date, level: S.level });
       S.editing = false; rooms();
     } catch (e) { fail(e); sb.disabled = false; sb.textContent = 'ยืนยันส่งผลตรวจ'; }
