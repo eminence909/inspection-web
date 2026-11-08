@@ -19,11 +19,34 @@
   function toast(m) { const t = document.getElementById('toast'); t.textContent = m; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2400); }
   function kindName() { return S.kind === 'classroom' ? 'ตรวจห้องเรียน' : 'ตรวจเขตพื้นที่'; }
   async function api(action, p) {
-    const r = await fetch(window.API_URL, { method: 'POST', body: JSON.stringify(Object.assign({ action }, p || {})) });
+    let r;
+    try { r = await fetch(window.API_URL, { method: 'POST', body: JSON.stringify(Object.assign({ action }, p || {})) }); }
+    catch (e) { const x = new Error('ไม่มีสัญญาณอินเทอร์เน็ต'); x.net = true; throw x; }
     const j = await r.json();
     if (!j.ok) throw new Error(j.error);
     return j.data;
   }
+  // ---- คิวส่งผลเมื่อไม่มีสัญญาณ ----
+  const getQ = () => { try { return JSON.parse(localStorage.getItem('queue') || '[]'); } catch (e) { return []; } };
+  const setQ = q => { try { localStorage.setItem('queue', JSON.stringify(q)); } catch (e) {} };
+  const sameRoom = (a, b) => a.kind === b.kind && a.date === b.date && String(a.level) === String(b.level) && String(a.room) === String(b.room);
+  function enqueue(action, params) { const q = getQ().filter(x => !sameRoom(x.params, params)); q.push({ action, params, ts: Date.now() }); setQ(q); }
+  let flushing = false;
+  async function flushQueue() {
+    if (flushing) return 0; flushing = true; let sent = 0;
+    try {
+      let q = getQ();
+      while (q.length) {
+        try { await api(q[0].action, q[0].params); } catch (e) { if (e.net) break; } // ข้อผิดพลาดอื่น (เช่นแก้ไขเกินวัน) ทิ้งรายการ
+        q.shift(); setQ(q); sent++;
+      }
+    } finally { flushing = false; }
+    if (sent) toast('ส่งผลที่ค้างไว้แล้ว ' + sent + ' รายการ');
+    return sent;
+  }
+  window.addEventListener('online', () => flushQueue().then(() => { if (S.level && S.status && document.getElementById('img')) enterLevel(); }));
+  const qBanner = () => getQ().length ? `<div class="note" style="margin-bottom:12px;display:flex;gap:10px;align-items:center"><span style="flex:1">มีผลตรวจรอส่ง ${getQ().length} รายการ (ส่งอัตโนมัติเมื่อมีสัญญาณ)</span><button class="btn sec" id="qs" style="margin:0;width:auto;padding:8px 14px">ส่งตอนนี้</button></div>` : '';
+  function bindQ() { const b = document.getElementById('qs'); if (b) b.onclick = () => flushQueue().then(n => { if (!n) toast('ยังส่งไม่ได้ ลองใหม่เมื่อมีสัญญาณ'); }); }
   function loading() { $app.innerHTML = '<div class="spin">กำลังโหลด...</div>'; }
   function fail(e) { toast(e.message || 'เกิดข้อผิดพลาด'); console.error(e); }
   function header(title, sub, back) {
@@ -53,7 +76,7 @@
       }
     }
     S.date = S.date || S.init.today;
-    $app.innerHTML = `
+    $app.innerHTML = qBanner() + `
       <section class="hero"><div class="bigword">CLEAN</div>
         <div class="eyebrow">สภานักเรียน · ${esc(S.init.schoolName || '')}</div>
         <h1>ตรวจห้องเรียน<br>และเขตพื้นที่</h1>
@@ -68,6 +91,7 @@
       </div>
       <button class="rowbtn" id="rosterBtn"><span class="ic">${IC.list}</span><span class="t">ดูเวรประจำวัน</span>${IC.arrow.replace('<svg','<svg width="18" height="18" style="stroke:currentColor;fill:none;stroke-width:2"')}</button>
       <div style="text-align:center;margin-top:16px"><a href="roster.html" class="muted">สำหรับผู้จัดเวร</a></div>`;
+    bindQ();
     document.getElementById('rosterBtn').onclick = viewRoster;
     const dt = document.getElementById('dt');
     dt.onchange = () => {
@@ -102,7 +126,9 @@
   async function enterLevel() {
     loading();
     try {
-      const ld = await api('levelData', { kind: S.kind, date: S.date, level: S.level });
+      const lk = ['lv', S.kind, S.date, S.level].join('|'); let ld;
+      try { ld = await api('levelData', { kind: S.kind, date: S.date, level: S.level }); try { localStorage.setItem(lk, JSON.stringify(ld)); } catch (e) {} }
+      catch (e) { let c = null; try { c = JSON.parse(localStorage.getItem(lk) || 'null'); } catch (x) {} if (e.net && c) { ld = c; toast('ออฟไลน์: ใช้ข้อมูลที่จำไว้ล่าสุด'); } else throw e; }
       S.status = ld.status; S.team = S.status.team; S.rosterNames = ld.rosterNames || [];
       if (!S.team) return teamStep(); else return rooms();
     } catch (e) { fail(e); pickLevel(); }
@@ -199,14 +225,15 @@
     bar(); header(`ม.${S.level} · เลือกห้อง`, kindName() + ' · ' + thDate(S.date), pickLevel);
     const done = {}, un = {};
     S.status.done.forEach(d => done[d.room] = d); S.status.unavail.forEach(u => un[u.room] = u);
-    const n = S.status.done.length;
-    let h = `<div class="card"><div class="row" style="align-items:center"><div><b>ผู้ตรวจ:</b> ${esc(S.team.names.join(', '))}
+    getQ().forEach(x => { const p = x.params; if (p.kind === S.kind && p.date === S.date && String(p.level) === String(S.level) && !(done[p.room] && !done[p.room].pending)) done[p.room] = { room: p.room, total: K.dailyTotals(S.kind, p.scores).total, pending: true, scores: p.scores }; });
+    const n = Object.keys(done).length;
+    let h = qBanner() + `<div class="card"><div class="row" style="align-items:center"><div><b>ผู้ตรวจ:</b> ${esc(S.team.names.join(', '))}
       ${S.kind === 'classroom' ? '<br><span class="badge">อาคาร' + (S.team.buildingOpen === 'open' ? 'เปิด' : 'ปิด') + '</span>' : ''}</div>
       <button class="btn sec" id="et" style="margin:0;flex:0 0 120px;padding:8px">แก้ไขทีม</button></div></div>
       <div class="card"><h2>ห้อง ม.${S.level}/1–${CR.ROOMS} <span class="muted">(ตรวจแล้ว ${n}/${CR.ROOMS})</span></h2><div class="grid">`;
     for (let r = 1; r <= CR.ROOMS; r++) {
       if (un[r]) h += `<button class="tile un" data-r="${r}" data-s="un">${S.level}/${r}<small>${esc(un[r].reason || 'ตรวจไม่ได้')}</small></button>`;
-      else if (done[r]) h += `<button class="tile done" data-r="${r}" data-s="done">${S.level}/${r}<small>ตรวจแล้ว ${done[r].total}</small></button>`;
+      else if (done[r]) h += `<button class="tile done" data-r="${r}" data-s="done">${S.level}/${r}<small>${done[r].pending ? 'รอส่ง' : 'ตรวจแล้ว'} ${done[r].total}</small></button>`;
       else h += `<button class="tile" data-r="${r}" data-s="new">${S.level}/${r}<small>ยังไม่ตรวจ</small></button>`;
     }
     h += `</div></div><button class="btn sec" id="img" ${n ? '' : 'disabled'}>ดาวน์โหลดใบประเมินเป็นรูปภาพ</button>${n + Object.keys(un).length >= CR.ROOMS ? '<div class="muted" style="text-align:center;margin-top:8px">ตรวจครบทุกห้องแล้ว</div>' : ''}`;
@@ -221,6 +248,7 @@
       } catch (e) { fail(e); }
       b.disabled = false; b.textContent = 'ดาวน์โหลดใบประเมินเป็นรูปภาพ';
     };
+    bindQ();
     document.getElementById('et').onclick = teamStep;
     $app.querySelectorAll('.tile').forEach(b => b.onclick = () => {
       const r = b.dataset.r, s = b.dataset.s;
@@ -231,6 +259,12 @@
     });
   }
   async function doneRoom(d) {
+    if (d.pending) {
+      bar(); header(`ม.${S.level}/${S.room}`, 'รอส่ง', rooms);
+      $app.innerHTML = `<div class="card"><h2>รอส่งขึ้นระบบ</h2><p>คะแนนรวม <b>${d.total}</b> / 100 (บันทึกในเครื่องแล้ว จะส่งอัตโนมัติเมื่อมีสัญญาณ)</p><button class="btn warn" id="ed">แก้ไขผลการตรวจ</button></div>`;
+      document.getElementById('ed').onclick = () => { S.scores = Object.assign({}, d.scores); S.editing = 'pending'; form(); };
+      return;
+    }
     const canEdit = d.submittedDate === S.status.today;
     bar(); header(`ม.${S.level}/${S.room}`, 'ตรวจแล้ว', rooms);
     $app.innerHTML = `<div class="card"><h2>ห้องนี้ตรวจแล้ว</h2><p>คะแนนรวม <b>${d.total}</b> / 100</p>
@@ -288,6 +322,15 @@
       h += `<tr class="sub"><td>รวมหมวด ${c.no}</td><td>${t.cats[ci].sum}/${c.max}</td></tr>`;
     });
     h += `</table><div class="tot">รวมทั้งหมด ${t.total} / 100</div></div>`;
+    const vals = def.categories.flatMap(c => c.items.map(i => ({ v: Number(S.scores[i.id]), max: i.max })));
+    S.anom = '';
+    if (!viewOnly) {
+      if (vals.every(x => x.v === 0)) S.anom = 'คุณให้ 0 คะแนนทุกข้อ';
+      else if (vals.every(x => x.v === x.max)) S.anom = 'คุณให้คะแนนเต็มทุกข้อ';
+      else if (vals.every(x => x.v === vals[0].v)) S.anom = 'คุณให้คะแนนเท่ากันทุกข้อ (' + vals[0].v + ')';
+    }
+    S.confirmAnom = false;
+    if (S.anom) h = `<div class="note bad" style="margin-bottom:12px"><b>${S.anom}</b><br>กรุณาตรวจสอบอีกครั้งว่าถูกต้อง ถ้าถูกต้องกดยืนยันส่งสองครั้ง</div>` + h;
     $app.innerHTML = h;
     if (viewOnly) return bar('<button class="btn sec" id="ok" style="margin:0">กลับ</button>'), document.getElementById('ok').onclick = rooms;
     bar('<button class="btn sec" id="bk" style="margin:0;flex:1">แก้ไข</button><button class="btn" id="sb" style="margin:0;flex:2">ยืนยันส่งผลตรวจ</button>');
@@ -295,10 +338,13 @@
     document.getElementById('sb').onclick = submit;
   }
   async function submit() {
-    const sb = document.getElementById('sb'); sb.disabled = true; sb.textContent = 'กำลังส่ง...';
+    const sb = document.getElementById('sb');
+    if (S.anom && !S.confirmAnom) { S.confirmAnom = true; sb.textContent = 'ยืนยันอีกครั้ง (' + S.anom + ')'; toast('คะแนนผิดปกติ กดยืนยันอีกครั้งเพื่อส่ง'); return; }
+    sb.disabled = true; sb.textContent = 'กำลังส่ง...';
+    const base = { kind: S.kind, date: S.date, level: S.level, room: S.room, scores: S.scores };
     try {
-      const base = { kind: S.kind, date: S.date, level: S.level, room: S.room, scores: S.scores };
-      if (S.editing) await api('editOwn', base);
+      await flushQueue();
+      if (S.editing === true) await api('editOwn', base);
       else {
         const r = await api('submit', base);
         if (r.already) { toast('ห้องนี้ตรวจแล้ว'); S.status = await api('status', { kind: S.kind, date: S.date, level: S.level }); return rooms(); }
@@ -306,8 +352,16 @@
       clearDraft(); toast('บันทึกผลตรวจเรียบร้อย');
       S.status = await api('status', { kind: S.kind, date: S.date, level: S.level });
       S.editing = false; rooms();
-    } catch (e) { fail(e); sb.disabled = false; sb.textContent = 'ยืนยันส่งผลตรวจ'; }
+    } catch (e) {
+      if (e.net) { // ไม่มีสัญญาณ: เก็บไว้ในเครื่องแล้วส่งภายหลัง
+        enqueue('submit', base); clearDraft(); S.editing = false;
+        toast('ไม่มีสัญญาณ: บันทึกในเครื่องแล้ว จะส่งให้อัตโนมัติ'); return rooms();
+      }
+      fail(e); sb.disabled = false; sb.textContent = 'ยืนยันส่งผลตรวจ';
+    }
   }
 
+  flushQueue();
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
   home();
 })();
