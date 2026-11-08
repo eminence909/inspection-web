@@ -81,7 +81,7 @@
         <div class="eyebrow">สภานักเรียน · ${esc(S.init.schoolName || '')}</div>
         <h1>ตรวจห้องเรียน<br>และเขตพื้นที่</h1>
         <p>${esc(S.init.term || '')}</p></section>
-      <div class="stats"><div><b>6</b><span>ระดับชั้น</span></div><div><b>72</b><span>ห้อง</span></div><div><b>100</b><span>คะแนนเต็ม</span></div><div><b>2</b><span>รูปแบบการตรวจ</span></div></div>
+      <div class="stats" id="stats"><div><b>-</b><span>ตรวจห้องเรียน</span></div><div><b>-</b><span>ตรวจเขตพื้นที่</span></div><div><b>72</b><span>ห้องทั้งหมด</span></div><div><b>100</b><span>คะแนนเต็ม</span></div></div>
       <div class="card"><label for="dt">วันที่ตรวจ</label>
         <input type="date" id="dt" value="${S.date}" max="${S.init.today}">
         <div class="muted" id="dtl" style="margin-top:6px">${thDate(S.date)}</div></div>
@@ -93,10 +93,18 @@
       <div style="text-align:center;margin-top:16px"><a href="roster.html" class="muted">สำหรับผู้จัดเวร</a></div>`;
     bindQ();
     document.getElementById('rosterBtn').onclick = viewRoster;
+    const loadStats = () => {
+      const d = S.date; api('dayCount', { date: d }).then(r => {
+        if (d !== S.date || !document.getElementById('stats')) return;
+        const b = document.querySelectorAll('#stats b'); const f = (n, u) => n + u >= 72 ? '<i class="ok">ครบ</i>' : (n + u) + '/72';
+        b[0].innerHTML = f(r.classroom, r.unClassroom); b[1].innerHTML = f(r.zone, r.unZone);
+      }).catch(() => {});
+    };
+    loadStats();
     const dt = document.getElementById('dt');
     dt.onchange = () => {
       if (!dt.value || dt.value > S.init.today) { dt.value = S.init.today; toast('เลือกวันที่ล่วงหน้าไม่ได้'); }
-      S.date = dt.value; document.getElementById('dtl').textContent = thDate(S.date);
+      S.date = dt.value; document.getElementById('dtl').textContent = thDate(S.date); loadStats();
     };
     $app.querySelectorAll('.mcard').forEach(b => b.onclick = () => { S.kind = b.dataset.k; pickLevel(); });
   }
@@ -220,6 +228,7 @@
     } catch (e) { fail(e); teamStep(); }
   }
 
+  const bandCls = t => t >= 80 ? 'b-g' : t >= 70 ? 'b-s' : t >= 60 ? 'b-b' : t >= 50 ? 'b-p' : 'b-f';
   // ---------- 4 รายการห้อง ----------
   function rooms() {
     bar(); header(`ม.${S.level} · เลือกห้อง`, kindName() + ' · ' + thDate(S.date), pickLevel);
@@ -230,10 +239,11 @@
     let h = qBanner() + `<div class="card"><div class="row" style="align-items:center"><div><b>ผู้ตรวจ:</b> ${esc(S.team.names.join(', '))}
       ${S.kind === 'classroom' ? '<br><span class="badge">อาคาร' + (S.team.buildingOpen === 'open' ? 'เปิด' : 'ปิด') + '</span>' : ''}</div>
       <button class="btn sec" id="et" style="margin:0;flex:0 0 120px;padding:8px">แก้ไขทีม</button></div></div>
-      <div class="card"><h2>ห้อง ม.${S.level}/1–${CR.ROOMS} <span class="muted">(ตรวจแล้ว ${n}/${CR.ROOMS})</span></h2><div class="grid">`;
+      <div class="card"><h2>ห้อง ม.${S.level}/1–${CR.ROOMS} <span class="muted">(ตรวจแล้ว ${n}/${CR.ROOMS})</span></h2>
+      <div class="prog"><i style="width:${Math.round((n + Object.keys(un).length) / CR.ROOMS * 100)}%"></i></div><div class="grid">`;
     for (let r = 1; r <= CR.ROOMS; r++) {
       if (un[r]) h += `<button class="tile un" data-r="${r}" data-s="un">${S.level}/${r}<small>${esc(un[r].reason || 'ตรวจไม่ได้')}</small></button>`;
-      else if (done[r]) h += `<button class="tile done" data-r="${r}" data-s="done">${S.level}/${r}<small>${done[r].pending ? 'รอส่ง' : 'ตรวจแล้ว'} ${done[r].total}</small></button>`;
+      else if (done[r]) h += `<button class="tile done ${bandCls(done[r].total)}" data-r="${r}" data-s="done">${S.level}/${r}<small>${done[r].pending ? 'รอส่ง' : 'ตรวจแล้ว'} ${done[r].total}</small></button>`;
       else h += `<button class="tile" data-r="${r}" data-s="new">${S.level}/${r}<small>ยังไม่ตรวจ</small></button>`;
     }
     h += `</div></div><button class="btn sec" id="img" ${n ? '' : 'disabled'}>ดาวน์โหลดใบประเมินเป็นรูปภาพ</button>${n + Object.keys(un).length >= CR.ROOMS ? '<div class="muted" style="text-align:center;margin-top:8px">ตรวจครบทุกห้องแล้ว</div>' : ''}`;

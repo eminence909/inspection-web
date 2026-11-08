@@ -129,3 +129,13 @@ details summary{cursor:pointer;font-weight:600;color:var(--b)}
 @media(max-width:480px){.hero h1{font-size:28px}.hero .bigword{font-size:66px}.stats b{font-size:20px}.mcard{min-height:150px}}
 
 mark{background:var(--ac);color:var(--ac-ink);border-radius:4px;padding:0 3px}
+
+.stats i.ok{font-style:normal;color:var(--ac)}
+.prog{height:8px;border-radius:8px;background:rgba(255,255,255,.07);overflow:hidden;margin:2px 0 14px}
+.prog i{display:block;height:100%;background:linear-gradient(90deg,var(--ac),var(--b));border-radius:8px;transition:width .5s ease}
+.tile.done.b-g{border-color:#d9b44a;color:#e8c766;background:rgba(217,180,74,.12)}
+.tile.done.b-s{border-color:#aab4bd;color:#cfd6dc;background:rgba(170,180,189,.12)}
+.tile.done.b-b{border-color:#c07a45;color:#d99562;background:rgba(192,122,69,.13)}
+.tile.done.b-p{border-color:#6f9f86;color:#8fbfa5;background:rgba(111,159,134,.12)}
+.tile.done.b-f{border-color:#c0584f;color:#e07d74;background:rgba(192,88,79,.13)}
+.tile.done small{color:inherit}

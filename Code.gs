@@ -154,6 +154,13 @@ var ACTIONS = {
       unavail: d.unavail.filter(function (r) { return r.level === L; })
     };
   },
+  // จำนวนห้องที่ตรวจแล้วของวันนั้น (ใช้แสดงหน้าแรก)
+  dayCount: function (p) {
+    var out = { classroom: 0, zone: 0, unClassroom: 0, unZone: 0 };
+    rows_('Inspections').forEach(function (r) { if (r.date === p.date && out[r.kind] !== undefined) out[r.kind]++; });
+    rows_('Unavail').forEach(function (r) { if (r.date === p.date) { if (r.kind === 'classroom') out.unClassroom++; else if (r.kind === 'zone') out.unZone++; } });
+    return out;
+  },
   // สถานะห้องของระดับชั้นในวันนั้น
   status: function (p) {
     if (!validKind_(p.kind)) throw new Error('ประเภทไม่ถูกต้อง');
