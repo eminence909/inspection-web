@@ -44,13 +44,13 @@
   // ---------- shell ----------
   function shell() {
     document.getElementById('logout').hidden = false;
-    const tabs = [['daily', 'ผลรายวัน / แก้ไข'], ['weekly', 'สรุปรายสัปดาห์'], ['monthly', 'สรุปรายเดือน'], ['roster', 'เวร / สถานะการส่ง'], ['settings', 'ตั้งค่า']];
+    const tabs = [['daily', 'ผลรายวัน / แก้ไข'], ['weekly', 'สรุปรายสัปดาห์'], ['monthly', 'สรุปรายเดือน'], ['insights', 'ภาพรวม / แจ้งเตือน'], ['roster', 'เวร / สถานะการส่ง'], ['settings', 'ตั้งค่า']];
     $app.innerHTML = `<div class="tabs" id="tabs">${tabs.map(t => `<button data-t="${t[0]}" class="${st.tab === t[0] ? 'on' : ''}">${t[1]}</button>`).join('')}</div>
       <div class="seg" style="margin-bottom:14px"><button class="tile ${st.kind === 'zone' ? 'sel' : ''}" data-k="zone">เขตพื้นที่</button><button class="tile ${st.kind === 'classroom' ? 'sel' : ''}" data-k="classroom">ห้องเรียน</button></div>
       <div id="pane"></div>`;
     document.querySelectorAll('#tabs button').forEach(b => b.onclick = () => { st.tab = b.dataset.t; shell(); });
     document.querySelectorAll('[data-k]').forEach(b => b.onclick = () => { st.kind = b.dataset.k; st.week = null; shell(); });
-    ({ daily, weekly, monthly, roster, settings }[st.tab])();
+    ({ daily, weekly, monthly, insights, roster, settings }[st.tab])();
   }
   const pane = () => document.getElementById('pane');
 
@@ -180,6 +180,63 @@
   }
 
   // ---------- เวร / สถานะการส่งใบประเมิน ----------
+
+  // ---------- ภาพรวม / แจ้งเตือนคะแนนต่ำซ้ำ / ส่งออก CSV ----------
+  async function insights() {
+    st.from = st.from || SM.addDays(todayISO(), -13); st.to = st.to || todayISO(); st.thr = st.thr || 50; st.rep = st.rep || 2;
+    pane().innerHTML = `<div class="card"><div class="tb"><div><label>ตั้งแต่</label><input type="date" id="f" value="${st.from}" max="${todayISO()}"></div>
+      <div><label>ถึง</label><input type="date" id="t" value="${st.to}" max="${todayISO()}"></div></div>
+      <div class="tb"><div><label>เตือนเมื่อคะแนนต่ำกว่า</label><select id="th">${[50, 60, 70, 80].map(v => `<option ${v === st.thr ? 'selected' : ''}>${v}</option>`).join('')}</select></div>
+      <div><label>ซ้ำอย่างน้อย (วัน)</label><select id="rp">${[2, 3, 4, 5].map(v => `<option ${v === st.rep ? 'selected' : ''}>${v}</option>`).join('')}</select></div></div></div>
+      <div id="ins" class="spin">กำลังโหลด...</div>`;
+    const reload = () => { st.from = document.getElementById('f').value; st.to = document.getElementById('t').value; st.thr = Number(document.getElementById('th').value); st.rep = Number(document.getElementById('rp').value); insights(); };
+    ['f', 't', 'th', 'rp'].forEach(i => document.getElementById(i).onchange = reload);
+    if (!st.from || !st.to || st.from > st.to) { document.getElementById('ins').innerHTML = '<div class="note">ช่วงวันที่ไม่ถูกต้อง</div>'; return; }
+    try {
+      const data = await api('adminList', { kind: st.kind, from: st.from, to: st.to });
+      const ins = data.inspections;
+      if (!ins.length) { document.getElementById('ins').innerHTML = '<div class="card"><div class="note">ไม่มีผลตรวจในช่วงนี้</div></div>'; return; }
+      // เฉลี่ยรายชั้น
+      const lv = {}; ins.forEach(r => { (lv[r.level] = lv[r.level] || []).push(r.total); });
+      const avg = x => x.reduce((s, v) => s + v, 0) / x.length;
+      const bars = CR.LEVELS.map(l => { const x = lv[l]; const v = x ? avg(x) : null; return `<div class="brow"><span>ม.${l}</span><div class="bt"><i style="width:${v || 0}%"></i></div><b>${v == null ? '-' : v.toFixed(1)}</b></div>`; }).join('');
+      // แนวโน้มรายวัน
+      const dd = {}; ins.forEach(r => { (dd[r.date] = dd[r.date] || []).push(r.total); });
+      const days = Object.keys(dd).sort();
+      const trend = days.map(d => { const v = avg(dd[d]); return `<div class="tcol" title="${thd(d)}: ${v.toFixed(1)}"><i style="height:${Math.max(2, v)}%"></i><small>${thd(d).split(' ').slice(0, 2).join(' ')}</small></div>`; }).join('');
+      // คะแนนต่ำซ้ำ
+      const low = {}; ins.forEach(r => { if (r.total < st.thr) { const k = r.level + '/' + r.room; (low[k] = low[k] || []).push(r); } });
+      const al = Object.keys(low).filter(k => low[k].length >= st.rep).sort((x, y) => low[y].length - low[x].length);
+      const alHtml = al.length ? `<div class="scroll"><table class="dt"><tr><th>ห้อง</th><th>จำนวนวัน</th><th>วันที่</th><th>เฉลี่ย</th></tr>${al.map(k => `<tr><td class="l"><b>${k}</b></td><td>${low[k].length}</td><td class="l">${low[k].map(r => thd(r.date)).join(', ')}</td><td>${avg(low[k].map(r => r.total)).toFixed(1)}</td></tr>`).join('')}</table></div>` : `<div class="note">ไม่มีห้องที่คะแนนต่ำกว่า ${st.thr} ซ้ำ ${st.rep} วันขึ้นไป</div>`;
+      document.getElementById('ins').innerHTML = `
+        <div class="card"><h3>ห้องคะแนนต่ำซ้ำ</h3>${alHtml}</div>
+        <div class="card"><h3>คะแนนเฉลี่ยรายระดับชั้น</h3>${bars}<div class="muted">เฉลี่ยจาก ${ins.length} ใบประเมิน</div></div>
+        <div class="card"><h3>แนวโน้มคะแนนเฉลี่ยรายวัน</h3><div class="trend">${trend}</div></div>
+        <button class="btn" id="csv">ดาวน์โหลดไฟล์ Excel (CSV) ช่วงวันที่นี้</button>`;
+      document.getElementById('csv').onclick = () => exportCsv(data);
+    } catch (e) { fail(e); }
+  }
+  function exportCsv(data) {
+    const def = CR[st.kind], items = []; def.categories.forEach(c => c.items.forEach(i => items.push(i)));
+    const teamOf = {}; data.teams.forEach(t => teamOf[t.date + '|' + t.level] = t);
+    const q = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+    const head = ['วันที่', 'ชั้น', 'ห้อง', 'ผู้ตรวจ'].concat(st.kind === 'classroom' ? ['อาคาร'] : []).concat(items.map(i => i.id)).concat(['รวม', 'หมายเหตุ']);
+    const rows = [];
+    data.inspections.slice().sort((x, y) => x.date.localeCompare(y.date) || x.level - y.level || x.room - y.room).forEach(r => {
+      const t = teamOf[r.date + '|' + r.level];
+      rows.push([r.date, r.level, r.room, t ? t.names.join(', ') : ''].concat(st.kind === 'classroom' ? [t ? (t.buildingOpen === 'open' ? 'เปิด' : t.buildingOpen === 'closed' ? 'ปิด' : '') : ''] : []).concat(items.map(i => r.scores[i.id])).concat([r.total, '']));
+    });
+    data.unavail.forEach(u => {
+      const t = teamOf[u.date + '|' + u.level];
+      rows.push([u.date, u.level, u.room, t ? t.names.join(', ') : ''].concat(st.kind === 'classroom' ? [''] : []).concat(items.map(() => '')).concat(['', 'ตรวจไม่ได้: ' + (u.reason || '') + (u.text ? ' ' + u.text : '')]));
+    });
+    const csv = '﻿' + [head].concat(rows).map(r => r.map(q).join(',')).join('\r\n');
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    const el = document.createElement('a'); el.href = url; el.download = (st.kind === 'zone' ? 'zone' : 'classroom') + '_' + st.from + '_' + st.to + '.csv';
+    document.body.appendChild(el); el.click(); el.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000);
+    toast('ดาวน์โหลดแล้ว เปิดด้วย Excel ได้เลย');
+  }
+
   async function roster(date) {
     date = date || st.date;
     pane().innerHTML = `<div class="card"><div class="tb"><div><label>วันที่</label><input type="date" id="sd" value="${date}" max="${todayISO()}"></div>

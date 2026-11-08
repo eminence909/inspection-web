@@ -148,3 +148,12 @@ mark{background:var(--ac);color:var(--ac-ink);border-radius:4px;padding:0 3px}
 .item.nxt{animation:nxt .9s ease}
 @keyframes nxt{0%{box-shadow:0 0 0 0 rgba(190,230,90,.6)}100%{box-shadow:0 0 0 14px rgba(190,230,90,0)}}
 @media(prefers-reduced-motion:reduce){.item.nxt{animation:none}.cat .chev{transition:none}}
+
+.brow{display:flex;align-items:center;gap:10px;margin:8px 0}
+.brow span{width:34px;font-weight:600}.brow b{width:44px;text-align:right}
+.bt{flex:1;height:10px;border-radius:8px;background:rgba(255,255,255,.07);overflow:hidden}
+.bt i{display:block;height:100%;background:linear-gradient(90deg,var(--ac),var(--b));border-radius:8px}
+.trend{display:flex;align-items:flex-end;gap:4px;height:130px;overflow-x:auto;padding-bottom:2px}
+.tcol{flex:1 0 22px;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center}
+.tcol i{display:block;width:100%;background:var(--ac);border-radius:4px 4px 0 0;opacity:.85}
+.tcol small{font-size:10px;color:var(--mut);margin-top:3px;white-space:nowrap}
