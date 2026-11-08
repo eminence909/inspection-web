@@ -1,0 +1,286 @@
+/* หน้าผู้ตรวจ (ไม่ต้องล็อกอิน) */
+(function () {
+  const CR = window.CRITERIA, K = window.CALC;
+  const $app = document.getElementById('app');
+  const $back = document.getElementById('back');
+  const S = { kind: null, date: null, level: null, team: null, status: null, init: null, room: null, scores: {}, editing: false, stack: [] };
+
+  // ---------- util ----------
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const MONTHS = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+  const DAYS = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'];
+  function thDate(d) { const [y, m, dd] = d.split('-').map(Number); const w = new Date(y, m - 1, dd).getDay(); return `วัน${DAYS[w]}ที่ ${dd} ${MONTHS[m - 1]} ${y + 543}`; }
+  function toast(m) { const t = document.getElementById('toast'); t.textContent = m; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2400); }
+  function kindName() { return S.kind === 'classroom' ? 'ตรวจห้องเรียน' : 'ตรวจเขตพื้นที่'; }
+  async function api(action, p) {
+    const r = await fetch(window.API_URL, { method: 'POST', body: JSON.stringify(Object.assign({ action }, p || {})) });
+    const j = await r.json();
+    if (!j.ok) throw new Error(j.error);
+    return j.data;
+  }
+  function loading() { $app.innerHTML = '<div class="spin">กำลังโหลด...</div>'; }
+  function fail(e) { toast(e.message || 'เกิดข้อผิดพลาด'); console.error(e); }
+  function header(title, sub, back) {
+    document.getElementById('hTitle').textContent = title;
+    document.getElementById('hSub').textContent = sub || '';
+    $back.hidden = !back; $back.onclick = back || null;
+    window.scrollTo(0, 0);
+  }
+  function bar(html) { let b = document.querySelector('.bar'); if (b) b.remove(); if (html) { b = document.createElement('div'); b.className = 'bar'; b.innerHTML = '<div class="in">' + html + '</div>'; document.body.appendChild(b); } return b; }
+  const draftKey = () => ['draft', S.kind, S.date, S.level, S.room].join('|');
+  function saveDraft() { try { localStorage.setItem(draftKey(), JSON.stringify(S.scores)); } catch (e) {} }
+  function loadDraft() { try { return JSON.parse(localStorage.getItem(draftKey()) || '{}'); } catch (e) { return {}; } }
+  function clearDraft() { try { localStorage.removeItem(draftKey()); } catch (e) {} }
+
+  // ---------- 1 หน้าแรก ----------
+  async function home() {
+    bar(); header('ระบบตรวจห้องเรียนและเขตพื้นที่', '');
+    if (!S.init) {
+      loading();
+      try { S.init = await api('init'); } catch (e) { $app.innerHTML = '<div class="card">เชื่อมต่อระบบไม่ได้ ตรวจสอบ config.js<br><span class="muted">' + esc(e.message) + '</span></div>'; return; }
+    }
+    S.date = S.date || S.init.today;
+    $app.innerHTML = `
+      <div class="card"><h2>${esc(S.init.schoolName || 'สภานักเรียน')}</h2>
+        <div class="muted">${esc(S.init.term || '')}</div></div>
+      <div class="card"><label for="dt">วันที่ตรวจ</label>
+        <input type="date" id="dt" value="${S.date}" max="${S.init.today}">
+        <div class="muted" id="dtl">${thDate(S.date)}</div></div>
+      <div class="menu">
+        <button class="z" data-k="zone">🌳 ตรวจเขตพื้นที่<small>Sripisai Clean Zone</small></button>
+        <button class="c" data-k="classroom">🏫 ตรวจห้องเรียน<small>The SMART Classroom</small></button>
+      </div>
+      <button class="btn sec" id="rosterBtn" style="margin-top:12px">📋 ดูเวรประจำวัน</button>
+      <div style="text-align:center;margin-top:14px"><a href="roster.html" class="muted">สำหรับผู้จัดเวร</a></div>`;
+    document.getElementById('rosterBtn').onclick = viewRoster;
+    const dt = document.getElementById('dt');
+    dt.onchange = () => {
+      if (!dt.value || dt.value > S.init.today) { dt.value = S.init.today; toast('เลือกวันที่ล่วงหน้าไม่ได้'); }
+      S.date = dt.value; document.getElementById('dtl').textContent = thDate(S.date);
+    };
+    $app.querySelectorAll('.menu button').forEach(b => b.onclick = () => { S.kind = b.dataset.k; pickLevel(); });
+  }
+
+  // ---------- ดูเวร ----------
+  async function viewRoster() {
+    bar(); header('ดูเวร', thDate(S.date), home); loading();
+    try {
+      const es = await api('rosterGet', { date: S.date });
+      $app.innerHTML = `<div class="card"><label for="rd">วันที่</label><input type="date" id="rd" value="${S.date}" max="${S.init.today}">
+        <div class="muted">${thDate(S.date)}</div></div>` + window.ROSTER.viewHtml(es);
+      document.getElementById('rd').onchange = e => { if (e.target.value && e.target.value <= S.init.today) { S.date = e.target.value; viewRoster(); } };
+    } catch (e) { fail(e); home(); }
+  }
+
+  // ---------- 2 เลือกระดับชั้น ----------
+  function pickLevel() {
+    bar(); header(kindName(), thDate(S.date), home);
+    $app.innerHTML = '<div class="card"><h2>เลือกระดับชั้น</h2><div class="grid" id="lv"></div></div>';
+    const g = document.getElementById('lv');
+    CR.LEVELS.forEach(l => { const b = document.createElement('button'); b.className = 'tile'; b.textContent = 'ม.' + l; b.onclick = () => { S.level = String(l); enterLevel(); }; g.appendChild(b); });
+  }
+  async function enterLevel() {
+    loading();
+    try {
+      S.status = await api('status', { kind: S.kind, date: S.date, level: S.level });
+      S.team = S.status.team; S.rosterNames = [];
+      if (!S.team) {
+        try { const es = await api('rosterGet', { date: S.date }); const e = es.find(x => x.section === S.kind && x.grp === S.level); S.rosterNames = e ? e.names : []; } catch (x) {}
+        return teamStep();
+      } else return rooms();
+    } catch (e) { fail(e); pickLevel(); }
+  }
+
+  // ---------- 3 ผู้ตรวจ + อาคารเปิด/ปิด ----------
+  let tmp = null;
+  function teamStep() {
+    bar(); header(`ม.${S.level} · ผู้ตรวจ`, kindName() + ' · ' + thDate(S.date), S.team ? rooms : pickLevel);
+    tmp = { names: (S.team ? S.team.names.slice() : (S.rosterNames || []).slice(0, 3)), open: S.team ? S.team.buildingOpen : '', un: {} };
+    S.status.unavail.forEach(u => tmp.un[u.room] = { reason: u.reason, text: u.text });
+    draw();
+    function draw() {
+      const list = S.init.names.slice();
+      tmp.names.forEach(n => { if (list.indexOf(n) < 0) list.push(n); });
+      let h = `<div class="card"><h2>ผู้ตรวจ <span class="muted">(1–3 คน)</span></h2>${!S.team && (S.rosterNames || []).length ? '<div class="note" style="margin-bottom:8px">ติ๊กชื่อจากเวรวันนี้ให้แล้ว แก้ไขได้</div>' : ''}<div class="chips">` +
+        list.map(n => `<button class="chip ${tmp.names.includes(n) ? 'on' : ''}" data-n="${esc(n)}">${esc(n)}</button>`).join('') +
+        `</div><div class="row"><input type="text" id="nn" placeholder="พิมพ์ชื่อเพิ่ม"><button class="btn sec" id="add" style="margin:0;flex:0 0 90px">เพิ่ม</button></div>
+        <div class="muted" style="margin-top:6px">เลือกแล้ว ${tmp.names.length}/3 คน</div></div>`;
+      if (S.kind === 'classroom') {
+        h += `<div class="card"><h2>อาคารเรียนวันนี้</h2><div class="seg">
+          <button class="tile ${tmp.open === 'open' ? 'sel' : ''}" data-o="open">✅ เปิด</button>
+          <button class="tile ${tmp.open === 'closed' ? 'sel' : ''}" data-o="closed">🔒 ปิด/บางห้องเข้าไม่ได้</button></div></div>`;
+        if (tmp.open === 'closed') h += unavailCard();
+      }
+      h += `<button class="btn" id="go">ถัดไป</button>`;
+      $app.innerHTML = h;
+      $app.querySelectorAll('.chip').forEach(c => c.onclick = () => {
+        const n = c.dataset.n, i = tmp.names.indexOf(n);
+        if (i >= 0) tmp.names.splice(i, 1); else if (tmp.names.length < 3) tmp.names.push(n); else toast('เลือกได้สูงสุด 3 คน');
+        draw();
+      });
+      document.getElementById('add').onclick = () => {
+        const v = document.getElementById('nn').value.trim(); if (!v) return;
+        if (tmp.names.length >= 3) return toast('เลือกได้สูงสุด 3 คน');
+        if (!tmp.names.includes(v)) tmp.names.push(v); draw();
+      };
+      $app.querySelectorAll('[data-o]').forEach(b => b.onclick = () => { tmp.open = b.dataset.o; draw(); });
+      bindUnavail(draw);
+      document.getElementById('go').onclick = saveTeam;
+    }
+  }
+  function unavailCard() {
+    const all = Object.keys(tmp.un).length === CR.ROOMS;
+    let h = `<div class="card"><h2>ห้องที่ตรวจไม่ได้</h2>
+      <button class="btn sec" id="all" style="margin:0 0 10px">${all ? 'ยกเลิกเลือกทั้งหมด' : 'เลือกทั้งหมด'}</button><div class="grid g4">`;
+    for (let r = 1; r <= CR.ROOMS; r++) h += `<button class="tile ${tmp.un[r] ? 'sel' : ''}" data-r="${r}">${S.level}/${r}</button>`;
+    h += '</div>';
+    if (Object.keys(tmp.un).length) {
+      h += `<h3 style="margin-top:14px">เหตุผล</h3><select id="rs"><option value="">-- เลือกเหตุผล --</option>` +
+        S.init.reasons.map(x => `<option>${esc(x)}</option>`).join('') + `</select>
+        <input type="text" id="rt" placeholder="รายละเอียดเพิ่มเติม (ถ้ามี)" style="margin-top:8px">
+        <div class="muted" style="margin-top:6px">เหตุผลนี้ใช้กับห้องที่เลือกทั้งหมด</div>`;
+      const f = tmp.un[Object.keys(tmp.un)[0]];
+      setTimeout(() => { const s = document.getElementById('rs'), t = document.getElementById('rt'); if (s) { s.value = f.reason || ''; t.value = f.text || ''; } }, 0);
+    }
+    return h + '</div>';
+  }
+  function bindUnavail(redraw) {
+    const all = document.getElementById('all'); if (!all) return;
+    const keep = () => { const s = document.getElementById('rs'), t = document.getElementById('rt'); if (s) Object.keys(tmp.un).forEach(r => tmp.un[r] = { reason: s.value, text: t.value }); };
+    all.onclick = () => {
+      keep();
+      if (Object.keys(tmp.un).length === CR.ROOMS) tmp.un = {}; else for (let r = 1; r <= CR.ROOMS; r++) tmp.un[r] = tmp.un[r] || { reason: '', text: '' };
+      redraw();
+    };
+    $app.querySelectorAll('[data-r]').forEach(b => b.onclick = () => { keep(); const r = b.dataset.r; if (tmp.un[r]) delete tmp.un[r]; else tmp.un[r] = { reason: '', text: '' }; redraw(); });
+    const s = document.getElementById('rs'), t = document.getElementById('rt');
+    if (s) { s.onchange = keep; t.oninput = keep; }
+  }
+  async function saveTeam() {
+    if (!tmp.names.length) return toast('เลือกผู้ตรวจอย่างน้อย 1 คน');
+    let items = [];
+    if (S.kind === 'classroom') {
+      if (!tmp.open) return toast('เลือกสถานะอาคารก่อน');
+      if (tmp.open === 'closed') {
+        const s = document.getElementById('rs'), t = document.getElementById('rt');
+        const rooms = Object.keys(tmp.un);
+        if (!rooms.length) return toast('เลือกห้องที่ตรวจไม่ได้อย่างน้อย 1 ห้อง');
+        if (!s.value && !t.value.trim()) return toast('ระบุเหตุผล');
+        items = rooms.map(r => ({ room: r, reason: s.value, text: t.value.trim() }));
+      }
+    }
+    loading();
+    try {
+      await api('saveTeam', { kind: S.kind, date: S.date, level: S.level, names: tmp.names, buildingOpen: S.kind === 'classroom' ? tmp.open : '' });
+      if (S.kind === 'classroom') await api('saveUnavail', { kind: S.kind, date: S.date, level: S.level, items });
+      await enterLevel();
+    } catch (e) { fail(e); teamStep(); }
+  }
+
+  // ---------- 4 รายการห้อง ----------
+  function rooms() {
+    bar(); header(`ม.${S.level} · เลือกห้อง`, kindName() + ' · ' + thDate(S.date), pickLevel);
+    const done = {}, un = {};
+    S.status.done.forEach(d => done[d.room] = d); S.status.unavail.forEach(u => un[u.room] = u);
+    const n = S.status.done.length;
+    let h = `<div class="card"><div class="row" style="align-items:center"><div><b>ผู้ตรวจ:</b> ${esc(S.team.names.join(', '))}
+      ${S.kind === 'classroom' ? '<br><span class="badge">อาคาร' + (S.team.buildingOpen === 'open' ? 'เปิด' : 'ปิด') + '</span>' : ''}</div>
+      <button class="btn sec" id="et" style="margin:0;flex:0 0 120px;padding:8px">แก้ไขทีม</button></div></div>
+      <div class="card"><h2>ห้อง ม.${S.level}/1–${CR.ROOMS} <span class="muted">(ตรวจแล้ว ${n}/${CR.ROOMS})</span></h2><div class="grid">`;
+    for (let r = 1; r <= CR.ROOMS; r++) {
+      if (un[r]) h += `<button class="tile un" data-r="${r}" data-s="un">${S.level}/${r}<small>🔒 ${esc(un[r].reason || 'ตรวจไม่ได้')}</small></button>`;
+      else if (done[r]) h += `<button class="tile done" data-r="${r}" data-s="done">${S.level}/${r}<small>✓ ตรวจแล้ว ${done[r].total}</small></button>`;
+      else h += `<button class="tile" data-r="${r}" data-s="new">${S.level}/${r}<small>ยังไม่ตรวจ</small></button>`;
+    }
+    $app.innerHTML = h + '</div></div>';
+    document.getElementById('et').onclick = teamStep;
+    $app.querySelectorAll('.tile').forEach(b => b.onclick = () => {
+      const r = b.dataset.r, s = b.dataset.s;
+      if (s === 'un') return toast('ห้องนี้ตรวจไม่ได้: ' + (un[r].reason || '') + (un[r].text ? ' (' + un[r].text + ')' : ''));
+      S.room = r;
+      if (s === 'done') return doneRoom(done[r]);
+      S.editing = false; S.scores = loadDraft(); form();
+    });
+  }
+  async function doneRoom(d) {
+    const canEdit = d.submittedDate === S.status.today;
+    bar(); header(`ม.${S.level}/${S.room}`, 'ตรวจแล้ว', rooms);
+    $app.innerHTML = `<div class="card"><h2>ห้องนี้ตรวจแล้ว</h2><p>คะแนนรวม <b>${d.total}</b> / 100</p>
+      ${canEdit ? '<button class="btn warn" id="ed">แก้ไขผลการตรวจ (ภายในวันนี้)</button>' : '<div class="note">แก้ไขได้เฉพาะภายในวันที่กดส่ง หากต้องการแก้ไขให้แจ้งแอดมิน</div>'}
+      <button class="btn sec" id="vw">ดูรายละเอียด</button></div>`;
+    const load = async () => { loading(); const r = await api('getInspection', { kind: S.kind, date: S.date, level: S.level, room: S.room }); return r.scores; };
+    document.getElementById('vw').onclick = async () => { try { S.scores = await load(); review(true); } catch (e) { fail(e); } };
+    if (canEdit) document.getElementById('ed').onclick = async () => { try { S.scores = await load(); S.editing = true; form(); } catch (e) { fail(e); } };
+  }
+
+  // ---------- 5 กรอกคะแนน ----------
+  function form() {
+    const def = CR[S.kind];
+    header(`ม.${S.level}/${S.room}`, kindName() + (S.editing ? ' · แก้ไข' : ''), () => { rooms(); });
+    let h = '';
+    def.categories.forEach(c => {
+      h += `<div class="cat"><span>${c.no}. ${esc(c.title)}</span><span data-sub="${c.no}"></span></div>`;
+      c.items.forEach(it => {
+        const lo = it.bands[it.bands.length - 1];
+        const vals = []; for (let v = it.max; v >= lo[0]; v--) vals.push(v);
+        h += `<div class="item" data-id="${it.id}"><div class="t">${it.id} ${esc(it.title)} <span>(เต็ม ${it.max})</span></div>
+          <div class="opts">${vals.map(v => `<button class="opt" data-v="${v}">${v}</button>`).join('')}</div>
+          <button class="info" type="button">ดูเกณฑ์คะแนน ▾</button>
+          <div class="bands">${it.bands.map(b => `<div><b>${b[0] === b[1] ? b[0] : b[0] + '–' + b[1]}</b> · ${esc(b[2])}</div>`).join('')}</div></div>`;
+      });
+    });
+    $app.innerHTML = h;
+    const refresh = () => {
+      $app.querySelectorAll('.item').forEach(el => {
+        const v = S.scores[el.dataset.id];
+        el.querySelectorAll('.opt').forEach(o => o.classList.toggle('on', v !== undefined && Number(o.dataset.v) === Number(v)));
+      });
+      const t = K.dailyTotals(S.kind, S.scores);
+      t.cats.forEach(c => { const e = $app.querySelector(`[data-sub="${c.no}"]`); if (e) e.textContent = c.sum + '/' + c.max; });
+      const filled = def.categories.reduce((a, c) => a + c.items.filter(i => S.scores[i.id] !== undefined).length, 0);
+      const all = def.categories.reduce((a, c) => a + c.items.length, 0);
+      document.getElementById('sum').textContent = `ตอบแล้ว ${filled}/${all} · ${t.total}/100`;
+      document.getElementById('rv').disabled = filled < all;
+    };
+    bar('<span class="sum" id="sum"></span><button class="btn" id="rv" style="flex:1">ตรวจสอบก่อนส่ง</button>');
+    $app.querySelectorAll('.opt').forEach(o => o.onclick = () => {
+      S.scores[o.closest('.item').dataset.id] = Number(o.dataset.v); saveDraft(); refresh();
+    });
+    $app.querySelectorAll('.info').forEach(b => b.onclick = () => b.nextElementSibling.classList.toggle('show'));
+    document.getElementById('rv').onclick = () => review(false);
+    refresh();
+  }
+
+  // ---------- 6 ตรวจสอบก่อนส่ง ----------
+  function review(viewOnly) {
+    const def = CR[S.kind], t = K.dailyTotals(S.kind, S.scores);
+    header(`ม.${S.level}/${S.room} · ตรวจสอบ`, kindName(), viewOnly ? () => rooms() : form);
+    let h = `<div class="card"><div class="muted">${thDate(S.date)} · ผู้ตรวจ ${esc(S.team.names.join(', '))}</div><table class="rv">`;
+    def.categories.forEach((c, ci) => {
+      c.items.forEach(it => { h += `<tr><td>${it.id} ${esc(it.title)}</td><td>${S.scores[it.id]}</td></tr>`; });
+      h += `<tr class="sub"><td>รวมหมวด ${c.no}</td><td>${t.cats[ci].sum}/${c.max}</td></tr>`;
+    });
+    h += `</table><div class="tot">รวมทั้งหมด ${t.total} / 100</div></div>`;
+    $app.innerHTML = h;
+    if (viewOnly) return bar('<button class="btn sec" id="ok" style="margin:0">กลับ</button>'), document.getElementById('ok').onclick = rooms;
+    bar('<button class="btn sec" id="bk" style="margin:0;flex:1">← แก้ไข</button><button class="btn" id="sb" style="margin:0;flex:2">ยืนยันส่งผลตรวจ</button>');
+    document.getElementById('bk').onclick = form;
+    document.getElementById('sb').onclick = submit;
+  }
+  async function submit() {
+    const sb = document.getElementById('sb'); sb.disabled = true; sb.textContent = 'กำลังส่ง...';
+    try {
+      const base = { kind: S.kind, date: S.date, level: S.level, room: S.room, scores: S.scores };
+      if (S.editing) await api('editOwn', base);
+      else {
+        const r = await api('submit', base);
+        if (r.already) { toast('ห้องนี้ตรวจแล้ว'); S.status = await api('status', { kind: S.kind, date: S.date, level: S.level }); return rooms(); }
+      }
+      clearDraft(); toast('บันทึกผลตรวจเรียบร้อย ✓');
+      S.status = await api('status', { kind: S.kind, date: S.date, level: S.level });
+      S.editing = false; rooms();
+    } catch (e) { fail(e); sb.disabled = false; sb.textContent = 'ยืนยันส่งผลตรวจ'; }
+  }
+
+  home();
+})();

@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>แอดมิน | ระบบตรวจห้องเรียนและเขตพื้นที่</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<style>
+main.wide{max-width:1100px}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.tabs button{flex:1;min-width:110px;padding:10px;border:2px solid var(--line);background:#fff;border-radius:12px;font:inherit;font-weight:600;cursor:pointer}
+.tabs button.on{background:var(--g);border-color:var(--g);color:#fff}
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:#fff}
+table.dt{border-collapse:collapse;width:100%;font-size:14px}
+table.dt th,table.dt td{border:1px solid var(--line);padding:5px 6px;text-align:center;white-space:nowrap}
+table.dt th{background:var(--g2)}
+table.dt td.l{text-align:left}
+table.dt input{width:44px;text-align:center;border:1px solid var(--line);border-radius:6px;padding:3px;font:inherit}
+.na{color:var(--mut);font-size:12px}
+.gold{background:#fff3c4}.silver{background:#eceff3}.bronze{background:#f6e0cf}.pass{background:#e6f5ee}.fail{background:#fde8e6}
+.tb{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-bottom:12px}.tb>div{flex:1;min-width:140px}
+textarea{min-height:140px}
+</style>
+</head>
+<body>
+<header class="top">
+  <a class="icon" href="index.html" style="display:grid;place-items:center;text-decoration:none">←</a>
+  <div class="ttl"><b>แอดมิน</b><small>ผลการตรวจและสรุป</small></div>
+  <button class="adminlink" id="logout" style="background:none;cursor:pointer;font:inherit" hidden>ออกจากระบบ</button>
+</header>
+<main class="wide" id="app"></main>
+<div id="toast" role="status"></div>
+<script src="config.js"></script>
+<script src="criteria.js"></script>
+<script src="calc.js"></script>
+<script src="summary.js"></script>
+<script src="roster.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="pdf.js"></script>
+<script src="admin.js"></script>
+</body>
+</html>
