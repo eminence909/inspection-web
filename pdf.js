@@ -43,7 +43,7 @@
       xs: [86.8, 108.5, 130.1, 151.8, 173.4, 195.1, 216.8, 238.4, 260.1, 281.7, 303.4, 325.0, 346.6, 368.4, 389.9, 411.7, 433.3, 455.0, 476.6, 498.2, 519.9],
       cols: ['1.1', '1.2', '1.3', '1.4', '2.1', '2.2', '2.3', '2.4', '3.1', '3.2', '3.3', '3.4', '4.1', '4.2', '4.3', '4.4', '5.1', '5.2', '5.3', '5.4'],
       total: [519.9, 549.3], rows: [388.6, 402.7, 416.7, 430.8, 444.9, 458.9, 473.0, 487.0, 501.1, 515.1, 529.3, 543.3, 557.4],
-      hdr: { y: [349.5, 365.5], wd: [371.9, 427.1], d: [434.1, 450.7], m: [473.7, 537.1], y4: [551.5, 575.5] },
+      hdr: { y: [349.5, 365.5], wd: [371.9, 427.1], d: [434.1, 450.7], m: [473.7, 537.1], y4: [553.5, 575.2] },
       names1: { y: [640.7, 654.8] }, names2: { y: [705.3, 719.3] }
     },
     dailyZ: {
@@ -73,6 +73,7 @@
     const fs = o.fs || 13, al = o.align === 'left' ? 'flex-start' : 'center';
     return `<div style="position:absolute;left:${x0 * PT}px;top:${y0 * PT}px;width:${(x1 - x0) * PT}px;height:${(y1 - y0) * PT}px;display:flex;align-items:center;justify-content:${al};text-align:center;font:${o.bold ? 700 : 500} ${fs}px/1.05 'Sarabun',sans-serif;color:${o.color || INK};overflow:hidden;white-space:${o.wrap ? 'normal' : 'nowrap'}">${esc(text)}</div>`;
   }
+  const F = (x0, x1, y0, y1, text, o) => R(x0 - 0.4, x1 + 0.4, y0 + 1.5, y1 - 0.6) + T(x0, x1, y0, y1, text, o); // ปิดจุดไข่ปลาแล้วเขียนข้อความทับ
   const R = (x0, x1, y0, y1) => `<div style="position:absolute;left:${x0 * PT}px;top:${y0 * PT}px;width:${(x1 - x0) * PT}px;height:${(y1 - y0) * PT}px;background:#fff"></div>`;
   const RI = (x0, x1, y0, y1) => R(x0 + 0.9, x1 - 0.9, y0 + 0.9, y1 - 0.9); // ลบเส้นแบ่งช่องภายในแถว
   function tplPage(tpl, level, inner) {
@@ -88,8 +89,8 @@
     const un = {}; data.unavail.filter(u => u.level === String(level)).forEach(u => un[u.room] = u);
     const team = data.teams.find(t => t.level === String(level)), names = team ? team.names : [];
     const p = dparts(date);
-    let h = T(g.hdr.wd[0], g.hdr.wd[1], g.hdr.y[0], g.hdr.y[1], WDN[p.w], { fs: 12 }) + T(g.hdr.d[0], g.hdr.d[1], g.hdr.y[0], g.hdr.y[1], String(p.d), { fs: 12 }) +
-      T(g.hdr.m[0], g.hdr.m[1], g.hdr.y[0], g.hdr.y[1], MFULL[p.m - 1], { fs: 12 }) + T(g.hdr.y4[0], g.hdr.y4[1], g.hdr.y[0], g.hdr.y[1], String(p.y), { fs: 10 });
+    let h = F(g.hdr.wd[0], g.hdr.wd[1], g.hdr.y[0], g.hdr.y[1], WDN[p.w], { fs: 12 }) + F(g.hdr.d[0], g.hdr.d[1], g.hdr.y[0], g.hdr.y[1], String(p.d), { fs: 12 }) +
+      F(g.hdr.m[0], g.hdr.m[1], g.hdr.y[0], g.hdr.y[1], MFULL[p.m - 1], { fs: 12 }) + F(g.hdr.y4[0], g.hdr.y4[1], g.hdr.y[0], g.hdr.y[1], String(p.y), { fs: 10 });
     const cellX = kind === 'classroom'
       ? i => [g.xs[i], g.xs[i + 1]]
       : i => [g.xs[i], g.xs[i + 1]];
@@ -125,11 +126,11 @@
     const g = kind === 'classroom' ? G.weekC : G.weekZ, xs = g.xs;
     let h = '';
     const a = dparts(w.dates[0]), e = dparts(w.dates[4]), hr = g.hdrRuns;
-    h += T(hr.sd[0], hr.sd[1], g.hy[0], g.hy[1], a.d) + T(hr.sm[0], hr.sm[1], g.hy[0], g.hy[1], MFULL[a.m - 1]) + T(hr.sy[0], hr.sy[1], g.hy[0], g.hy[1], a.y) +
-      T(hr.ed[0], hr.ed[1], g.hy[0], g.hy[1], e.d) + T(hr.em[0], hr.em[1], g.hy[0], g.hy[1], MFULL[e.m - 1]) + T(hr.ey[0], hr.ey[1], g.hy[0], g.hy[1], e.y);
+    h += F(hr.sd[0], hr.sd[1], g.hy[0], g.hy[1], a.d) + F(hr.sm[0], hr.sm[1], g.hy[0], g.hy[1], MFULL[a.m - 1]) + F(hr.sy[0], hr.sy[1], g.hy[0], g.hy[1], a.y) +
+      F(hr.ed[0], hr.ed[1], g.hy[0], g.hy[1], e.d) + F(hr.em[0], hr.em[1], g.hy[0], g.hy[1], MFULL[e.m - 1]) + F(hr.ey[0], hr.ey[1], g.hy[0], g.hy[1], e.y);
     w.dates.forEach((d, i) => {
       const p = dparts(d), r = g.dateRuns[i];
-      h += T(r[0], r[1], g.dy[0], g.dy[1], p.d, { fs: 9 }) + T(r[2], r[3], g.dy[0], g.dy[1], p.m, { fs: 9 }) + T(r[4], r[5], g.dy[0], g.dy[1], String(p.y).slice(2), { fs: 9 });
+      h += F(r[0], r[1], g.dy[0], g.dy[1], p.d, { fs: 9 }) + F(r[2], r[3], g.dy[0], g.dy[1], p.m, { fs: 9 }) + F(r[4], r[5], g.dy[0], g.dy[1], String(p.y).slice(2), { fs: 9 });
     });
     h += R(g.fix.x[0], g.fix.x[1], g.fix.y[0], g.fix.y[1]) + T(g.fix.x[0] - 4, g.fix.x[1] + 4, g.fix.y[0], g.fix.y[1], '(' + thDig(500) + ')', { fs: 12, color: '#000' });
     L.rooms.forEach((r, i) => {
@@ -145,7 +146,7 @@
   function monthPage(kind, m, L) {
     const g = kind === 'classroom' ? G.monC : G.monZ, xs = g.xs;
     const s = dparts(m.mondays[0]), e = dparts(SM.addDays(m.mondays[3], 4));
-    let h = T(165, 533, g.hy[0], g.hy[1], `${MFULL[s.m - 1]} ${s.y}  (${s.d} ${SMON[s.m - 1]} – ${e.d} ${SMON[e.m - 1]} ${e.y})`, { fs: 12, align: 'left' });
+    let h = F(163.1, 533.4, g.hy[0], g.hy[1], `${MFULL[s.m - 1]} ${s.y}  (${s.d} ${SMON[s.m - 1]} – ${e.d} ${SMON[e.m - 1]} ${e.y})`, { fs: 12, align: 'left' });
     h += R(g.fix.x[0], g.fix.x[1], g.fix.y[0], g.fix.y[1]) + T(g.fix.x[0] - 4, g.fix.x[1] + 4, g.fix.y[0], g.fix.y[1], '(' + thDig(400) + ')', { fs: 12, color: '#000' });
     L.rooms.forEach((r, i) => {
       const y0 = g.rows[i], y1 = g.rows[i + 1];
