@@ -291,7 +291,7 @@
     header(`ม.${S.level}/${S.room}`, kindName() + (S.editing ? ' · แก้ไข' : ''), () => { rooms(); });
     let h = '';
     def.categories.forEach(c => {
-      h += `<div class="cat"><span>${c.no}. ${esc(c.title)}</span><span data-sub="${c.no}"></span></div>`;
+      h += `<div class="cat" data-c="${c.no}" role="button" tabindex="0"><span>${c.no}. ${esc(c.title)}</span><span><span data-sub="${c.no}"></span><svg class="chev" viewBox="0 0 24 24" width="16" height="16"><path d="M6 9l6 6 6-6"/></svg></span></div><div class="cbody" data-cb="${c.no}">`;
       c.items.forEach(it => {
         const vals = K.allowedValues(it);
         h += `<div class="item" data-id="${it.id}"><div class="t">${it.id} ${esc(it.title)} <span>(เต็ม ${it.max})</span></div>
@@ -299,6 +299,7 @@
           <button class="info" type="button">ดูเกณฑ์คะแนน</button>
           <div class="bands">${it.bands.map(b => `<div><b>${b[0] === b[1] ? b[0] : b[0] + '–' + b[1]}</b> · ${esc(b[2])}</div>`).join('')}</div></div>`;
       });
+      h += '</div>';
     });
     $app.innerHTML = h;
     const refresh = () => {
@@ -313,9 +314,24 @@
       document.getElementById('sum').textContent = `ตอบแล้ว ${filled}/${all} · ${t.total}/100`;
       document.getElementById('rv').disabled = filled < all;
     };
+    const catDone = c => c.items.every(i => S.scores[i.id] !== undefined);
+    const setOpen = (no, open) => { const cb = $app.querySelector(`[data-cb="${no}"]`), ch = $app.querySelector(`.cat[data-c="${no}"]`); if (cb) cb.classList.toggle('closed', !open); if (ch) ch.classList.toggle('closed', !open); };
+    const firstOpen = def.categories.find(c => !catDone(c));
+    if (firstOpen) def.categories.forEach(c => { if (catDone(c)) setOpen(c.no, false); });
+    $app.querySelectorAll('.cat').forEach(ct => { const tg = () => setOpen(ct.dataset.c, ct.classList.contains('closed')); ct.onclick = tg; ct.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tg(); } }; });
+    const goTo = el => { if (!el) return; const r = el.getBoundingClientRect(); const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches; window.scrollTo({ top: window.scrollY + r.top - 90, behavior: reduce ? 'auto' : 'smooth' }); el.classList.add('nxt'); setTimeout(() => el.classList.remove('nxt'), 900); };
     bar('<span class="sum" id="sum"></span><button class="btn" id="rv" style="flex:1">ตรวจสอบก่อนส่ง</button>');
     $app.querySelectorAll('.opt').forEach(o => o.onclick = () => {
-      S.scores[o.closest('.item').dataset.id] = Number(o.dataset.v); saveDraft(); refresh();
+      const item = o.closest('.item'), had = S.scores[item.dataset.id] !== undefined;
+      S.scores[item.dataset.id] = Number(o.dataset.v); saveDraft(); refresh();
+      if (had) return; // แก้คำตอบเดิม ไม่เลื่อน
+      const cat = def.categories.find(c => c.items.some(i => i.id === item.dataset.id));
+      const nxt = cat.items.find(i => S.scores[i.id] === undefined);
+      if (nxt) setTimeout(() => goTo($app.querySelector(`.item[data-id="${nxt.id}"]`)), 180);
+      else {
+        const nc = def.categories.find(c => !catDone(c));
+        setTimeout(() => { setOpen(cat.no, false); if (nc) { setOpen(nc.no, true); goTo($app.querySelector(`.cat[data-c="${nc.no}"]`)); } else document.getElementById('rv').scrollIntoView({ block: 'end' }); }, 350);
+      }
     });
     $app.querySelectorAll('.info').forEach(b => b.onclick = () => b.nextElementSibling.classList.toggle('show'));
     document.getElementById('rv').onclick = () => review(false);

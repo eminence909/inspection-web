@@ -139,3 +139,12 @@ mark{background:var(--ac);color:var(--ac-ink);border-radius:4px;padding:0 3px}
 .tile.done.b-p{border-color:#6f9f86;color:#8fbfa5;background:rgba(111,159,134,.12)}
 .tile.done.b-f{border-color:#c0584f;color:#e07d74;background:rgba(192,88,79,.13)}
 .tile.done small{color:inherit}
+
+.cat{cursor:pointer;user-select:none}
+.cat>span:last-child{display:flex;align-items:center;gap:8px}
+.cat .chev{stroke:currentColor;fill:none;stroke-width:2.2;transition:transform .25s}
+.cat.closed .chev{transform:rotate(-90deg)}
+.cbody.closed{display:none}
+.item.nxt{animation:nxt .9s ease}
+@keyframes nxt{0%{box-shadow:0 0 0 0 rgba(190,230,90,.6)}100%{box-shadow:0 0 0 14px rgba(190,230,90,0)}}
+@media(prefers-reduced-motion:reduce){.item.nxt{animation:none}.cat .chev{transition:none}}
