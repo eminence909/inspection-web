@@ -96,7 +96,7 @@
     const loadStats = () => {
       const d = S.date; api('dayCount', { date: d }).then(r => {
         if (d !== S.date || !document.getElementById('stats')) return;
-        const b = document.querySelectorAll('#stats b'); const f = (n, u) => n + u >= 72 ? '<i class="ok">ครบ</i>' : (n + u) + '/72';
+        const b = document.querySelectorAll('#stats b'); const f = (n, u) => (n = Number(n) || 0, u = Number(u) || 0, n + u >= 72) ? '<i class="ok">ครบ</i>' : (n + u) + '/72';
         b[0].innerHTML = f(r.classroom, r.unClassroom); b[1].innerHTML = f(r.zone, r.unZone);
       }).catch(() => {});
     };

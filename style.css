@@ -4,11 +4,14 @@
   --ac:#b9c32f;--ac-ink:#10190f;--ac-soft:rgba(185,195,47,.14);
   --g:#2f8a5b;--g2:rgba(47,138,91,.18);--b:#6fb1d9;--b2:rgba(111,177,217,.14);
   --o:#e0a030;--r:#e5675a;--ok:#5fcf93;
-  --serif:'Noto Serif Thai','Sarabun',serif;
+  --sans:'Sarabun','Noto Sans Thai','Leelawadee UI',Tahoma,system-ui,sans-serif;
+  --serif:'Noto Serif Thai','Sarabun','Noto Serif',serif;
+  --fs:1;
 }
 *{box-sizing:border-box}
 html{color-scheme:dark}
-body{margin:0;font-family:'Sarabun',system-ui,sans-serif;background:radial-gradient(1200px 600px at 80% -10%,#1c3a2c 0,transparent 60%),var(--bg);color:var(--ink);font-size:17px;line-height:1.5;min-height:100vh}
+body{margin:0;zoom:var(--fs);font-family:var(--sans);-webkit-text-size-adjust:100%;text-rendering:optimizeLegibility;background:radial-gradient(1200px 600px at 80% -10%,#1c3a2c 0,transparent 60%),var(--bg);color:var(--ink);font-size:17px;line-height:1.6;min-height:100vh}
+button,input,select,textarea{font-family:inherit}
 a{color:var(--ac)}
 /* top bar */
 .top{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:12px;padding:12px 18px;background:rgba(13,23,20,.82);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
@@ -192,3 +195,5 @@ table.dt th:first-child{background:#1a2a24;z-index:2}
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
 }
+
+.fsz{background:transparent;border:1px solid var(--line);color:var(--ink);border-radius:999px;padding:4px 11px;cursor:pointer;font:inherit;font-size:13px;margin-right:8px}
