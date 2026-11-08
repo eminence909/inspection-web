@@ -83,7 +83,11 @@
     try {
       const es = await api('rosterGet', { date: S.date });
       $app.innerHTML = `<div class="card"><label for="rd">วันที่</label><input type="date" id="rd" value="${S.date}" max="${S.init.today}">
-        <div class="muted">${thDate(S.date)}</div></div>` + window.ROSTER.viewHtml(es);
+        <div class="muted" style="margin:6px 0 10px">${thDate(S.date)}</div>
+        <label for="rq">ค้นหาชื่อของฉัน</label><input type="text" id="rq" placeholder="พิมพ์ชื่อหรือนามสกุล" autocomplete="off"></div><div id="rl"></div>`;
+      const rl = document.getElementById('rl'), rq = document.getElementById('rq');
+      const show = () => { rl.innerHTML = window.ROSTER.viewHtml(es, rq.value); };
+      rq.oninput = show; show();
       document.getElementById('rd').onchange = e => { if (e.target.value && e.target.value <= S.init.today) { S.date = e.target.value; viewRoster(); } };
     } catch (e) { fail(e); home(); }
   }
@@ -245,8 +249,7 @@
     def.categories.forEach(c => {
       h += `<div class="cat"><span>${c.no}. ${esc(c.title)}</span><span data-sub="${c.no}"></span></div>`;
       c.items.forEach(it => {
-        const lo = it.bands[it.bands.length - 1];
-        const vals = []; for (let v = it.max; v >= lo[0]; v--) vals.push(v);
+        const vals = K.allowedValues(it);
         h += `<div class="item" data-id="${it.id}"><div class="t">${it.id} ${esc(it.title)} <span>(เต็ม ${it.max})</span></div>
           <div class="opts">${vals.map(v => `<button class="opt" data-v="${v}">${v}</button>`).join('')}</div>
           <button class="info" type="button">ดูเกณฑ์คะแนน</button>

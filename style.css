@@ -127,3 +127,5 @@ tr.gold td{background:rgba(224,180,48,.16)}tr.silver td{background:rgba(200,212,
 textarea{min-height:120px}
 details summary{cursor:pointer;font-weight:600;color:var(--b)}
 @media(max-width:480px){.hero h1{font-size:28px}.hero .bigword{font-size:66px}.stats b{font-size:20px}.mcard{min-height:150px}}
+
+mark{background:var(--ac);color:var(--ac-ink);border-radius:4px;padding:0 3px}

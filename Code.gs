@@ -258,7 +258,7 @@ var ACTIONS = {
     var scores = JSON.parse(ex.scores), v = Number(p.value);
     var item = findItem_(ex.kind, p.itemId);
     if (!item) throw new Error('ไม่มีหัวข้อนี้');
-    if (isNaN(v) || v < 0 || v > item.max) throw new Error('คะแนนต้องอยู่ระหว่าง 0-' + item.max);
+    if (isNaN(v) || allowedOf_(ex.kind, p.itemId).indexOf(v) < 0) throw new Error('คะแนนที่เลือกได้: ' + allowedOf_(ex.kind, p.itemId).join(', '));
     put_('EditLog', { time: now_(), by: 'admin', key: p.key, itemId: p.itemId, oldValue: scores[p.itemId], newValue: v });
     scores[p.itemId] = v;
     ex.scores = JSON.stringify(scores);
@@ -364,12 +364,17 @@ function maxMap_(kind) {
   }
   return m;
 }
+function allowedOf_(kind, id) {
+  var max = maxMap_(kind)[id];
+  if (!max) return null;
+  return max === 10 ? [10, 8, 6, 4, 3, 2, 1, 0] : [5, 4, 3, 2, 1, 0]; // ตามเกณฑ์: ข้อ 10 คะแนนเลือกได้ 10, 8, 6, 4 และ 3-0
+}
 function findItem_(kind, id) { var m = maxMap_(kind); return m[id] ? { max: m[id] } : null; }
 function cleanScores_(kind, scores) {
   var m = maxMap_(kind), out = {}, total = 0;
   Object.keys(m).forEach(function (id) {
     var v = Number((scores || {})[id]);
-    if (isNaN(v) || v < 0 || v > m[id] || (scores || {})[id] === '' || (scores || {})[id] === null || (scores || {})[id] === undefined)
+    if (isNaN(v) || allowedOf_(kind, id).indexOf(v) < 0 || (scores || {})[id] === '' || (scores || {})[id] === null || (scores || {})[id] === undefined)
       throw new Error('คะแนนข้อ ' + id + ' ไม่ครบหรือไม่ถูกต้อง');
     out[id] = v; total += v;
   });

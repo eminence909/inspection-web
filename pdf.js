@@ -143,10 +143,10 @@
   }
 
   // ---------- สรุปรายเดือน ----------
-  function monthPage(kind, m, L) {
+  function monthPage(kind, m, L, label) {
     const g = kind === 'classroom' ? G.monC : G.monZ, xs = g.xs;
     const s = dparts(m.mondays[0]), e = dparts(SM.addDays(m.mondays[3], 4));
-    let h = F(163.1, 533.4, g.hy[0], g.hy[1], `${MFULL[s.m - 1]} ${s.y}  (${s.d} ${SMON[s.m - 1]} – ${e.d} ${SMON[e.m - 1]} ${e.y})`, { fs: 12, align: 'left' });
+    let h = F(171, 533.4, g.hy[0] - 1.5, g.hy[1] - 1.5, `${label || MFULL[s.m - 1]} ${s.y}  (${s.d} ${SMON[s.m - 1]} – ${e.d} ${SMON[e.m - 1]} ${e.y})`, { fs: 13, align: 'left' });
     h += R(g.fix.x[0], g.fix.x[1], g.fix.y[0], g.fix.y[1]) + T(g.fix.x[0] - 4, g.fix.x[1] + 4, g.fix.y[0], g.fix.y[1], '(' + thDig(400) + ')', { fs: 12, color: '#000' });
     L.rooms.forEach((r, i) => {
       const y0 = g.rows[i], y1 = g.rows[i + 1];
@@ -228,7 +228,7 @@
         pages = w.levels.map(L => weekPage(w.kind, w, L)); ref = o.week;
         name = `สรุปรายสัปดาห์_${o.kind}_${o.week}.pdf`;
       } else {
-        const m = o.cur.m; pages = m.levels.map(L => monthPage(o.kind, m, L)); ref = o.cycle;
+        const m = o.cur.m; pages = m.levels.map(L => monthPage(o.kind, m, L, o.cycleLabel)); ref = o.cycle;
         name = `สรุปรายเดือน_${o.kind}_${o.cycle}.pdf`;
       }
       const pdf = await build(pages, false, 'letter');
@@ -254,7 +254,7 @@
     },
     async monthImage(o) { // o: { kind, cur, cycle, level }
       const L = o.cur.m.levels.find(x => String(x.level) === String(o.level));
-      const [c] = await canvases([monthPage(o.kind, o.cur.m, L)]);
+      const [c] = await canvases([monthPage(o.kind, o.cur.m, L, o.cycleLabel)]);
       await saveCanvas(c, `สรุปรายเดือน_${o.kind}_ม${o.level}_${o.cycle}.jpg`);
     },
     async roster(o) {

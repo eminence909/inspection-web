@@ -44,17 +44,24 @@
   const mapFromEntries = es => { const m = {}; (es || []).forEach(e => m[e.section + '|' + (e.grp || '')] = e.names.slice()); return m; };
   const entriesFromMap = m => Object.keys(m).filter(k => m[k].length).map(k => { const i = k.indexOf('|'); return { section: k.slice(0, i), grp: k.slice(i + 1), names: m[k] }; });
 
-  // หน้าดูเวร (อ่านอย่างเดียว)
-  function viewHtml(entries) {
-    const m = mapFromEntries(entries);
+  // หน้าดูเวร (อ่านอย่างเดียว) q = คำค้นชื่อ: แสดงเฉพาะแถวที่มีชื่อนั้นและไฮไลต์
+  function viewHtml(entries, q) {
+    const m = mapFromEntries(entries), key = String(q || '').trim().toLowerCase();
     if (!entries.length) return '<div class="card"><div class="note">ยังไม่มีการจัดเวรของวันนี้</div></div>';
-    return SECTIONS.map(s => {
+    const hl = n => { if (!key) return esc(n); const i = n.toLowerCase().indexOf(key); return i < 0 ? esc(n) : esc(n.slice(0, i)) + '<mark>' + esc(n.slice(i, i + key.length)) + '</mark>' + esc(n.slice(i + key.length)); };
+    let hit = 0;
+    const html = SECTIONS.map(s => {
       const rows = s.groups.map(g => {
-        const n = m[s.id + '|' + g]; if (!n) return '';
-        return `<tr><td style="width:34%;font-weight:600;vertical-align:top">${esc(groupLabel(g))}</td><td>${n.map(esc).join('<br>')}</td></tr>`;
+        let n = m[s.id + '|' + g]; if (!n) return '';
+        if (key) n = n.filter(x => x.toLowerCase().indexOf(key) >= 0);
+        if (!n.length) return '';
+        hit += n.length;
+        return `<tr><td style="width:34%;font-weight:600;vertical-align:top">${esc(groupLabel(g))}</td><td>${n.map(hl).join('<br>')}</td></tr>`;
       }).join('');
       return rows ? `<div class="card"><h3>${esc(s.title)}</h3><table style="width:100%;border-collapse:collapse">${rows}</table></div>` : '';
     }).join('');
+    if (key && !hit) return '<div class="card"><div class="note">ไม่พบชื่อ "' + esc(q) + '" ในเวรวันนี้</div></div>';
+    return html;
   }
 
   // ตัวแก้ไขเวรของวัน

@@ -17,8 +17,15 @@
   function isComplete(kind, scores) {
     return CR[kind].categories.every(c => c.items.every(i => {
       const v = scores[i.id];
-      return v !== undefined && v !== null && v !== '' && Number(v) >= 0 && Number(v) <= i.max;
+      return v !== undefined && v !== null && v !== '' && allowedValues(i).indexOf(Number(v)) >= 0;
     }));
+  }
+
+  // คะแนนที่เลือกได้ตามเกณฑ์จริงของข้อ (เช่น 10, 8, 6, 4 และ 3-0 ในช่วงล่างสุด)
+  function allowedValues(item) {
+    const out = [];
+    item.bands.forEach(b => { for (let v = b[1]; v >= b[0]; v--) if (out.indexOf(v) < 0) out.push(v); });
+    return out.sort((a, b) => b - a);
   }
 
   // days: array of daily totals (number) หรือ null เมื่อไม่ได้ประเมิน
@@ -59,7 +66,7 @@
   }
   const AWARDS = ['ชนะเลิศ', 'รองชนะเลิศอันดับ 1', 'รองชนะเลิศอันดับ 2', 'ชมเชย', 'ชมเชย'];
 
-  const api = { dailyTotals, isComplete, weekly, monthly, medalOf, rank, AWARDS };
+  const api = { allowedValues, dailyTotals, isComplete, weekly, monthly, medalOf, rank, AWARDS };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.CALC = api;
 })(typeof window !== 'undefined' ? window : this);

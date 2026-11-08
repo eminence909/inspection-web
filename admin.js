@@ -63,7 +63,7 @@
     document.getElementById('l').onchange = e => { st.level = e.target.value; daily(); };
     try {
       const data = await api('adminList', { kind: st.kind, from: st.date, to: st.date });
-      const def = CR[st.kind], items = []; def.categories.forEach(c => c.items.forEach(i => items.push(i)));
+      const def = CR[st.kind], items = [], itemById = {}; def.categories.forEach(c => c.items.forEach(i => { items.push(i); itemById[i.id] = i; }));
       const by = {}; data.inspections.filter(r => r.level === st.level).forEach(r => by[r.room] = r);
       const team = data.teams.find(t => t.level === st.level), un = {}; data.unavail.filter(u => u.level === st.level).forEach(u => un[u.room] = u);
       let h = `<div class="muted" style="margin-bottom:8px">ผู้ตรวจ: ${team ? esc(team.names.join(', ')) : '— ยังไม่มี'}${team && team.buildingOpen ? ' · อาคาร' + (team.buildingOpen === 'open' ? 'เปิด' : 'ปิด') : ''} · แก้ตัวเลขในช่องได้ทันที (บันทึกประวัติอัตโนมัติ)</div>
@@ -75,8 +75,8 @@
       }
       document.getElementById('tbl').outerHTML = h + '</table></div><div class="row"><button class="btn sec" id="hist" style="margin-top:12px">ดูประวัติการแก้ไข</button><button class="btn warn" id="dpdf" style="margin-top:12px">PDF ม.1–6</button><button class="btn sec" id="dimg" style="margin-top:12px">รูปภาพ ม.' + st.level + '</button></div><div id="hl"></div>';
       pane().querySelectorAll('input[data-i]').forEach(inp => { inp.dataset.old = inp.value; inp.onchange = async () => {
-        const v = Number(inp.value), mx = Number(inp.dataset.max);
-        if (inp.value === '' || isNaN(v) || v < 0 || v > mx) { inp.value = inp.dataset.old; return toast('คะแนนต้องอยู่ระหว่าง 0–' + mx); }
+        const v = Number(inp.value), ok = K.allowedValues(itemById[inp.dataset.i]);
+        if (inp.value === '' || isNaN(v) || ok.indexOf(v) < 0) { inp.value = inp.dataset.old; return toast('คะแนนที่เลือกได้: ' + ok.join(', ')); }
         const tr = inp.closest('tr');
         try { const r = await api('adminEdit', { key: tr.dataset.key, itemId: inp.dataset.i, value: v }); inp.dataset.old = inp.value; tr.querySelector('.tt').textContent = r.total; toast('บันทึกแล้ว'); }
         catch (e) { inp.value = inp.dataset.old; fail(e); }
@@ -137,14 +137,14 @@
     const mine = cycles.filter(c => c.month === st.month);
     pane().innerHTML = `<div class="card"><div class="tb"><div><label>เดือน</label><input type="month" id="m" value="${st.month}"></div></div>
       <h3>รอบสรุป ${thm(st.month)} (${kn()})</h3>
-      ${mine.length ? `<div class="grid">${mine.map(c => `<button class="tile" data-c="${c.startDate}">${esc(c.label || 'รอบเดือน')}<small>${thd(c.startDate)} – ${thd(SM.addDays(c.startDate, 25))}</small></button>`).join('')}</div>` : '<div class="note">ยังไม่ได้เปิดรอบของเดือนนี้</div>'}
+      ${mine.length ? `<div class="grid">${mine.map(c => `<button class="tile" data-c="${c.startDate}" data-l="${esc(c.label || '')}">${esc(c.label || 'รอบเดือน')}<small>${thd(c.startDate)} – ${thd(SM.addDays(c.startDate, 25))}</small></button>`).join('')}</div>` : '<div class="note">ยังไม่ได้เปิดรอบของเดือนนี้</div>'}
       <h3 style="margin-top:16px">เปิดรอบใหม่ (4 สัปดาห์ เริ่มวันจันทร์)</h3>
       <div class="tb"><div><label>วันจันทร์เริ่มต้น</label><select id="sd">${SM.mondaysOfMonth(st.month).map(m => `<option value="${m}">${thd(m)}</option>`).join('')}</select></div>
       <div><label>ชื่อรอบ</label><input type="text" id="lb" placeholder="เช่น เดือนพฤศจิกายน"></div>
       <button class="btn" id="add" style="margin:0;flex:0 0 120px">เปิดรอบ</button></div></div>`;
     document.getElementById('m').onchange = e => { if (e.target.value) { st.month = e.target.value; monthly(); } };
     document.getElementById('lb').value = MONTHS[Number(st.month.slice(5)) - 1];
-    pane().querySelectorAll('[data-c]').forEach(b => b.onclick = () => { st.cycle = b.dataset.c; monthly(); });
+    pane().querySelectorAll('[data-c]').forEach(b => b.onclick = () => { st.cycle = b.dataset.c; st.cycleLabel = b.dataset.l; monthly(); });
     document.getElementById('add').onclick = async () => {
       try { await api('adminAddCycle', { kind: st.kind, month: st.month, startDate: document.getElementById('sd').value, label: document.getElementById('lb').value }); toast('เปิดรอบแล้ว'); monthly(); } catch (e) { fail(e); }
     };
@@ -171,12 +171,12 @@
     };
     document.getElementById('up').onclick = load;
     document.getElementById('pdf').onclick = () => exportPdf('month');
-    document.getElementById('img').onclick = () => st.cur ? withPdf(() => window.PDFX.monthImage({ kind: st.kind, cur: st.cur, cycle: st.cycle, level: document.getElementById('il').value })) : toast('รอโหลดข้อมูลก่อน');
+    document.getElementById('img').onclick = () => st.cur ? withPdf(() => window.PDFX.monthImage({ kind: st.kind, cur: st.cur, cycle: st.cycle, cycleLabel: st.cycleLabel, level: document.getElementById('il').value })) : toast('รอโหลดข้อมูลก่อน');
     load();
   }
   function exportPdf(type) {
     if (!st.cur) return toast('รอโหลดข้อมูลก่อน');
-    withPdf(() => window.PDFX.export({ kind: st.kind, type, cur: st.cur, week: st.week, cycle: st.cycle, api }));
+    withPdf(() => window.PDFX.export({ kind: st.kind, type, cur: st.cur, week: st.week, cycle: st.cycle, cycleLabel: st.cycleLabel, api }));
   }
 
   // ---------- เวร / สถานะการส่งใบประเมิน ----------
