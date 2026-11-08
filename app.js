@@ -41,9 +41,16 @@
   // ---------- 1 หน้าแรก ----------
   async function home() {
     bar(); header('ระบบตรวจห้องเรียนและเขตพื้นที่', '');
+    const today0 = () => new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10);
     if (!S.init) {
+      let cached = null; try { cached = JSON.parse(localStorage.getItem('init') || 'null'); } catch (e) {}
+      if (cached) { // แสดงหน้าแรกทันทีจากข้อมูลที่จำไว้ แล้วอัปเดตเงียบ ๆ ด้านหลัง
+        S.init = Object.assign({}, cached, { today: today0() });
+        api('init').then(r => { S.init = r; try { localStorage.setItem('init', JSON.stringify(r)); } catch (e) {} }).catch(() => {});
+      } else {
       loading();
-      try { S.init = await api('init'); } catch (e) { $app.innerHTML = '<div class="card">เชื่อมต่อระบบไม่ได้ ตรวจสอบ config.js<br><span class="muted">' + esc(e.message) + '</span></div>'; return; }
+      try { S.init = await api('init'); try { localStorage.setItem('init', JSON.stringify(S.init)); } catch (e) {} } catch (e) { $app.innerHTML = '<div class="card">เชื่อมต่อระบบไม่ได้ ตรวจสอบ config.js<br><span class="muted">' + esc(e.message) + '</span></div>'; return; }
+      }
     }
     S.date = S.date || S.init.today;
     $app.innerHTML = `
@@ -91,12 +98,9 @@
   async function enterLevel() {
     loading();
     try {
-      S.status = await api('status', { kind: S.kind, date: S.date, level: S.level });
-      S.team = S.status.team; S.rosterNames = [];
-      if (!S.team) {
-        try { const es = await api('rosterGet', { date: S.date }); const e = es.find(x => x.section === S.kind && x.grp === S.level); S.rosterNames = e ? e.names : []; } catch (x) {}
-        return teamStep();
-      } else return rooms();
+      const ld = await api('levelData', { kind: S.kind, date: S.date, level: S.level });
+      S.status = ld.status; S.team = S.status.team; S.rosterNames = ld.rosterNames || [];
+      if (!S.team) return teamStep(); else return rooms();
     } catch (e) { fail(e); pickLevel(); }
   }
 
@@ -201,7 +205,18 @@
       else if (done[r]) h += `<button class="tile done" data-r="${r}" data-s="done">${S.level}/${r}<small>ตรวจแล้ว ${done[r].total}</small></button>`;
       else h += `<button class="tile" data-r="${r}" data-s="new">${S.level}/${r}<small>ยังไม่ตรวจ</small></button>`;
     }
-    $app.innerHTML = h + '</div></div>';
+    h += `</div></div><button class="btn sec" id="img" ${n ? '' : 'disabled'}>ดาวน์โหลดใบประเมินเป็นรูปภาพ</button>${n + Object.keys(un).length >= CR.ROOMS ? '<div class="muted" style="text-align:center;margin-top:8px">ตรวจครบทุกห้องแล้ว</div>' : ''}`;
+    $app.innerHTML = h;
+    document.getElementById('img').onclick = async () => {
+      const b = document.getElementById('img'); b.disabled = true; b.textContent = 'กำลังสร้างรูปภาพ...';
+      try {
+        await window.loadPdfStack();
+        const data = await api('dayData', { kind: S.kind, date: S.date, level: S.level });
+        await window.PDFX.dailyImage({ kind: S.kind, date: S.date, level: S.level, data, cfg: S.init });
+        toast('ดาวน์โหลดรูปภาพแล้ว');
+      } catch (e) { fail(e); }
+      b.disabled = false; b.textContent = 'ดาวน์โหลดใบประเมินเป็นรูปภาพ';
+    };
     document.getElementById('et').onclick = teamStep;
     $app.querySelectorAll('.tile').forEach(b => b.onclick = () => {
       const r = b.dataset.r, s = b.dataset.s;

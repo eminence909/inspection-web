@@ -43,7 +43,7 @@
       xs: [86.8, 108.5, 130.1, 151.8, 173.4, 195.1, 216.8, 238.4, 260.1, 281.7, 303.4, 325.0, 346.6, 368.4, 389.9, 411.7, 433.3, 455.0, 476.6, 498.2, 519.9],
       cols: ['1.1', '1.2', '1.3', '1.4', '2.1', '2.2', '2.3', '2.4', '3.1', '3.2', '3.3', '3.4', '4.1', '4.2', '4.3', '4.4', '5.1', '5.2', '5.3', '5.4'],
       total: [519.9, 549.3], rows: [388.6, 402.7, 416.7, 430.8, 444.9, 458.9, 473.0, 487.0, 501.1, 515.1, 529.3, 543.3, 557.4],
-      hdr: { y: [349.5, 365.5], wd: [371.9, 427.1], d: [434.1, 450.7], m: [473.7, 537.1], y4: [554.0, 567.7] },
+      hdr: { y: [349.5, 365.5], wd: [371.9, 427.1], d: [434.1, 450.7], m: [473.7, 537.1], y4: [551.5, 575.5] },
       names1: { y: [640.7, 654.8] }, names2: { y: [705.3, 719.3] }
     },
     dailyZ: {
@@ -95,9 +95,12 @@
       : i => [g.xs[i], g.xs[i + 1]];
     for (let r = 1; r <= CR.ROOMS; r++) {
       const y0 = g.rows[r - 1], y1 = g.rows[r], x = by[r];
-      if (!x) {
-        const first = g.xs[0], last = kind === 'classroom' ? g.xs[g.xs.length - 1] : g.xs[g.xs.length - 2];
-        h += RI(first, last, y0, y1) + T(first, last, y0, y1, un[r] ? 'ไม่ได้ตรวจ' + (un[r].reason ? ' : ' + un[r].reason : '') : 'ไม่มีการประเมิน', { fs: 11 });
+      if (!x) { // ไม่มีการตรวจ = ใส่ 0 ทุกช่อง
+        g.cols.forEach((c, i) => { h += T(g.xs[i], g.xs[i + 1], y0, y1, 0, { fs: 13, bold: c === 'T' || c[0] === 'S' }); });
+        if (kind === 'classroom') {
+          h += T(g.total[0], g.total[1], y0, y1, 0, { fs: 13, bold: true });
+          if (un[r]) h += T(549.8, 575.4, y0, y1, un[r].reason || 'ตรวจไม่ได้', { fs: 6.5, wrap: true });
+        }
         continue;
       }
       const tt = K.dailyTotals(kind, x.scores);
@@ -175,6 +178,23 @@
   }
 
   // ---------- เครื่องยนต์วาดเป็น PDF ----------
+  async function canvases(pageHtml) {
+    if (!root.html2canvas) throw new Error('โหลดตัวสร้างรูปภาพไม่สำเร็จ (ต้องต่ออินเทอร์เน็ต)');
+    if (document.fonts && document.fonts.ready) await document.fonts.ready;
+    const box = document.createElement('div');
+    box.style.cssText = 'position:fixed;left:-20000px;top:0;';
+    box.innerHTML = `<style>${CSS}</style>` + pageHtml.join('');
+    document.body.appendChild(box);
+    try {
+      await Promise.all(Array.from(box.querySelectorAll('img')).map(im => im.complete ? 0 : new Promise(r => { im.onload = im.onerror = r; })));
+      const out = [], pages = box.querySelectorAll('.pg');
+      for (let i = 0; i < pages.length; i++) out.push(await root.html2canvas(pages[i], { scale: 2, backgroundColor: '#fff' }));
+      return out;
+    } finally { box.remove(); }
+  }
+  function saveCanvas(c, name) {
+    return new Promise(res => c.toBlob(b => { const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); res(); }, 500); }, 'image/jpeg', 0.95));
+  }
   async function build(pageHtml, landscape, fmt) {
     if (!root.html2canvas || !root.jspdf) throw new Error('โหลดตัวสร้าง PDF ไม่สำเร็จ (ต้องต่ออินเทอร์เน็ต)');
     if (document.fonts && document.fonts.ready) await document.fonts.ready;
@@ -220,6 +240,21 @@
       const data = await o.api('adminList', { kind: o.kind, from: o.date, to: o.date });
       const pdf = await build(CR.LEVELS.map(l => dailyPage(o.kind, o.date, l, data, cfg)), false, 'letter');
       pdf.save(`ใบประเมินรายวัน_${o.kind}_${o.date}.pdf`);
+    },
+    // ดาวน์โหลดเป็นรูปภาพ (JPG) ของชั้นเดียว
+    async dailyImage(o) { // o: { kind, date, level, data, cfg }
+      const [c] = await canvases([dailyPage(o.kind, o.date, o.level, o.data, o.cfg || {})]);
+      await saveCanvas(c, `ใบประเมินรายวัน_${o.kind}_ม${o.level}_${o.date}.jpg`);
+    },
+    async weekImage(o) { // o: { kind, cur, week, level }
+      const w = Object.assign({ kind: o.kind }, o.cur.w), L = w.levels.find(x => String(x.level) === String(o.level));
+      const [c] = await canvases([weekPage(o.kind, w, L)]);
+      await saveCanvas(c, `สรุปรายสัปดาห์_${o.kind}_ม${o.level}_${o.week}.jpg`);
+    },
+    async monthImage(o) { // o: { kind, cur, cycle, level }
+      const L = o.cur.m.levels.find(x => String(x.level) === String(o.level));
+      const [c] = await canvases([monthPage(o.kind, o.cur.m, L)]);
+      await saveCanvas(c, `สรุปรายเดือน_${o.kind}_ม${o.level}_${o.cycle}.jpg`);
     },
     async roster(o) {
       const cfg = await o.api('adminGetConfig');

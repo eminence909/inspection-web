@@ -46,17 +46,29 @@ function sheet_(name) {
   }
   return s;
 }
-function initAll_() { Object.keys(SHEETS).forEach(sheet_); }
+var SCHEMA_VER = '4'; // เพิ่มเลขนี้เมื่อมีชีตใหม่
+var MEMO = {};
+function initAll_() {
+  var pr = PropertiesService.getScriptProperties();
+  if (pr.getProperty('schema') === SCHEMA_VER) return; // สร้างชีตเฉพาะครั้งแรก (เร็วขึ้นมาก)
+  Object.keys(SHEETS).forEach(sheet_);
+  pr.setProperty('schema', SCHEMA_VER);
+}
 function rows_(name) {
+  if (MEMO[name]) return MEMO[name]; // อ่านชีตซ้ำในคำขอเดียวกันไม่ต้องอ่านใหม่
   var s = sheet_(name), v = s.getDataRange().getValues();
-  var h = v.shift();
-  return v.filter(function (r) { return r[0] !== '' || r[1] !== ''; }).map(function (r, i) {
+  var h = v.shift(), out = [];
+  v.forEach(function (r, i) {
+    if (r[0] === '' && r[1] === '') return;
     var o = { _row: i + 2 };
     h.forEach(function (k, j) { o[k] = r[j] instanceof Date ? Utilities.formatDate(r[j], TZ, 'yyyy-MM-dd') : String(r[j]); });
-    return o;
+    out.push(o);
   });
+  MEMO[name] = out;
+  return out;
 }
 function put_(name, obj, row) {
+  MEMO = {};
   var s = sheet_(name), cols = SHEETS[name];
   var vals = cols.map(function (c) { return obj[c] === undefined ? '' : String(obj[c]); });
   if (row) s.getRange(row, 1, 1, cols.length).setNumberFormat('@').setValues([vals]);
@@ -111,11 +123,35 @@ function handle_(p) {
 var ACTIONS = {
   // ผู้ตรวจ ----------------------------------------------------
   init: function () {
+    var cache = CacheService.getScriptCache(), hit = cache.get('init'), o;
+    if (hit) o = JSON.parse(hit);
+    else {
+      o = {
+        names: rows_('Names').map(function (r) { return r.name; }),
+        reasons: rows_('Reasons').map(function (r) { return r.reason; }),
+        schoolName: cfg_('schoolName'), term: cfg_('term'),
+        headBuilding: cfg_('headBuilding'), councilPresident: cfg_('councilPresident'), advisor: cfg_('advisor')
+      };
+      cache.put('init', JSON.stringify(o), 300);
+    }
+    o.today = today_();
+    return o;
+  },
+  // ข้อมูลตอนเข้าชั้น: สถานะห้อง + ชื่อเวร ในคำขอเดียว
+  levelData: function (p) {
+    var st = ACTIONS.status(p), names = [];
+    var e = rows_('Roster').filter(function (r) { return r.date === p.date && r.section === p.kind && r.grp === String(p.level); })[0];
+    if (e) names = JSON.parse(e.names || '[]');
+    return { status: st, rosterNames: names };
+  },
+  // ผลของชั้นในวันนั้น (ใช้สร้างรูปใบประเมินหลังตรวจเสร็จ)
+  dayData: function (p) {
+    if (!validKind_(p.kind)) throw new Error('ประเภทไม่ถูกต้อง');
+    var d = rangeData_(p.kind, p.date, p.date), L = String(p.level);
     return {
-      today: today_(),
-      names: rows_('Names').map(function (r) { return r.name; }),
-      reasons: rows_('Reasons').map(function (r) { return r.reason; }),
-      schoolName: cfg_('schoolName'), term: cfg_('term')
+      inspections: d.inspections.filter(function (r) { return r.level === L; }),
+      teams: d.teams.filter(function (r) { return r.level === L; }),
+      unavail: d.unavail.filter(function (r) { return r.level === L; })
     };
   },
   // สถานะห้องของระดับชั้นในวันนั้น
@@ -239,6 +275,7 @@ var ACTIONS = {
   adminSetReasons: function (p) { checkAdmin_(p); replaceList_('Reasons', 'reason', p.list); return true; },
   adminSetConfig: function (p) {
     checkAdmin_(p);
+    CacheService.getScriptCache().remove('init');
     var allow = ['schoolName', 'term', 'headBuilding', 'councilPresident', 'advisor', 'deputyDirector', 'director'];
     var cur = rows_('Config');
     Object.keys(p.values || {}).forEach(function (k) {
@@ -299,6 +336,8 @@ function driveFolder_() {
   return it.hasNext() ? it.next() : DriveApp.createFolder(n);
 }
 function replaceList_(name, col, list) {
+  CacheService.getScriptCache().remove('init');
+  MEMO = {};
   var s = sheet_(name), n = s.getLastRow();
   if (n > 1) s.getRange(2, 1, n - 1, 1).clearContent();
   var clean = (list || []).map(function (x) { return String(x).trim(); }).filter(Boolean);

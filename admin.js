@@ -20,6 +20,8 @@
     const r = await fetch(window.API_URL, { method: 'POST', body: JSON.stringify(Object.assign({ action, pin: PIN }, p || {})) });
     const j = await r.json(); if (!j.ok) throw new Error(j.error); return j.data;
   }
+  const withPdf = fn => { toast('กำลังสร้างไฟล์...'); return window.loadPdfStack().then(fn).then(() => toast('เสร็จแล้ว')).catch(fail); };
+  const levelSel = id => `<select id="${id}" style="width:auto;flex:0 0 78px">${CR.LEVELS.map(l => `<option value="${l}">ม.${l}</option>`).join('')}</select>`;
   const fail = e => toast(e.message || 'เกิดข้อผิดพลาด');
   const kn = () => st.kind === 'classroom' ? 'ห้องเรียน' : 'เขตพื้นที่';
 
@@ -71,7 +73,7 @@
         if (x) h += `<tr data-key="${esc(x.key)}"><td class="l"><b>${st.level}/${r}</b></td>${items.map(i => `<td><input data-i="${i.id}" data-max="${i.max}" value="${x.scores[i.id]}" inputmode="numeric"></td>`).join('')}<td><b class="tt">${x.total}</b></td></tr>`;
         else h += `<tr><td class="l"><b>${st.level}/${r}</b></td><td colspan="${items.length + 1}" class="na l">${un[r] ? esc(un[r].reason + (un[r].text ? ' · ' + un[r].text : '')) : NA}</td></tr>`;
       }
-      document.getElementById('tbl').outerHTML = h + '</table></div><div class="row"><button class="btn sec" id="hist" style="margin-top:12px">ดูประวัติการแก้ไข</button><button class="btn warn" id="dpdf" style="margin-top:12px">PDF ใบรายวัน ม.1–6</button></div><div id="hl"></div>';
+      document.getElementById('tbl').outerHTML = h + '</table></div><div class="row"><button class="btn sec" id="hist" style="margin-top:12px">ดูประวัติการแก้ไข</button><button class="btn warn" id="dpdf" style="margin-top:12px">PDF ม.1–6</button><button class="btn sec" id="dimg" style="margin-top:12px">รูปภาพ ม.${st.level}</button></div><div id="hl"></div>';
       pane().querySelectorAll('input[data-i]').forEach(inp => { inp.dataset.old = inp.value; inp.onchange = async () => {
         const v = Number(inp.value), mx = Number(inp.dataset.max);
         if (inp.value === '' || isNaN(v) || v < 0 || v > mx) { inp.value = inp.dataset.old; return toast('คะแนนต้องอยู่ระหว่าง 0–' + mx); }
@@ -79,7 +81,8 @@
         try { const r = await api('adminEdit', { key: tr.dataset.key, itemId: inp.dataset.i, value: v }); inp.dataset.old = inp.value; tr.querySelector('.tt').textContent = r.total; toast('บันทึกแล้ว'); }
         catch (e) { inp.value = inp.dataset.old; fail(e); }
       }; });
-      document.getElementById('dpdf').onclick = () => { toast('กำลังสร้าง PDF...'); window.PDFX.daily({ kind: st.kind, date: st.date, api }).then(() => toast('สร้าง PDF แล้ว')).catch(fail); };
+      document.getElementById('dpdf').onclick = () => withPdf(() => window.PDFX.daily({ kind: st.kind, date: st.date, api }));
+      document.getElementById('dimg').onclick = () => withPdf(async () => window.PDFX.dailyImage({ kind: st.kind, date: st.date, level: st.level, data, cfg: await api('adminGetConfig') }));
       document.getElementById('hist').onclick = async () => {
         try {
           const rows = (await api('adminHistory', {})).filter(r => r.key.indexOf('|' + st.date + '|' + st.level + '|') > 0);
@@ -101,7 +104,7 @@
   async function weekView() {
     pane().innerHTML = `<div class="card"><div class="tb"><button class="btn sec" id="bk" style="margin:0;flex:0 0 100px">กลับ</button>
       <b style="flex:2">สรุป${kn()} ${thd(st.week)} – ${thd(SM.addDays(st.week, 4))}</b>
-      <button class="btn" id="up" style="margin:0">อัปเดต</button><button class="btn warn" id="pdf" style="margin:0">PDF</button></div><div id="wv" class="spin">กำลังโหลด...</div></div>`;
+      <button class="btn" id="up" style="margin:0">อัปเดต</button><button class="btn warn" id="pdf" style="margin:0">PDF</button>${levelSel('il')}<button class="btn sec" id="img" style="margin:0">รูปภาพ</button></div><div id="wv" class="spin">กำลังโหลด...</div></div>`;
     document.getElementById('bk').onclick = () => { st.week = null; weekly(); };
     const load = async () => {
       document.getElementById('wv').innerHTML = 'กำลังโหลด...';
@@ -113,6 +116,7 @@
     };
     document.getElementById('up').onclick = load;
     document.getElementById('pdf').onclick = () => exportPdf('week');
+    document.getElementById('img').onclick = () => st.cur ? withPdf(() => window.PDFX.weekImage({ kind: st.kind, cur: st.cur, week: st.week, level: document.getElementById('il').value })) : toast('รอโหลดข้อมูลก่อน');
     load();
   }
   function levelWeekTable(L, dates) {
@@ -148,7 +152,7 @@
   async function monthView() {
     pane().innerHTML = `<div class="card"><div class="tb"><button class="btn sec" id="bk" style="margin:0;flex:0 0 100px">กลับ</button>
       <b style="flex:2">สรุป${kn()}รายเดือน ${thd(st.cycle)} – ${thd(SM.addDays(st.cycle, 25))}</b>
-      <button class="btn" id="up" style="margin:0">อัปเดต</button><button class="btn warn" id="pdf" style="margin:0">PDF</button></div><div id="mv" class="spin">กำลังโหลด...</div></div>`;
+      <button class="btn" id="up" style="margin:0">อัปเดต</button><button class="btn warn" id="pdf" style="margin:0">PDF</button>${levelSel('il')}<button class="btn sec" id="img" style="margin:0">รูปภาพ</button></div><div id="mv" class="spin">กำลังโหลด...</div></div>`;
     document.getElementById('bk').onclick = () => { st.cycle = null; monthly(); };
     const load = async () => {
       document.getElementById('mv').innerHTML = 'กำลังโหลด...';
@@ -167,11 +171,12 @@
     };
     document.getElementById('up').onclick = load;
     document.getElementById('pdf').onclick = () => exportPdf('month');
+    document.getElementById('img').onclick = () => st.cur ? withPdf(() => window.PDFX.monthImage({ kind: st.kind, cur: st.cur, cycle: st.cycle, level: document.getElementById('il').value })) : toast('รอโหลดข้อมูลก่อน');
     load();
   }
   function exportPdf(type) {
-    if (!st.cur || !window.PDFX) return toast('ระบบ PDF ยังไม่พร้อม');
-    toast('กำลังสร้าง PDF...'); window.PDFX.export({ kind: st.kind, type, cur: st.cur, week: st.week, cycle: st.cycle, api }).then(() => toast('สร้าง PDF แล้ว และเก็บฉบับล่าสุดลง Drive')).catch(fail);
+    if (!st.cur) return toast('รอโหลดข้อมูลก่อน');
+    withPdf(() => window.PDFX.export({ kind: st.kind, type, cur: st.cur, week: st.week, cycle: st.cycle, api }));
   }
 
   // ---------- เวร / สถานะการส่งใบประเมิน ----------
@@ -181,7 +186,7 @@
       <button class="btn sec" id="rf" style="margin:0;flex:0 0 100px">รีเฟรช</button><button class="btn warn" id="rpdf" style="margin:0;flex:0 0 140px">PDF ใบเวร</button></div><div id="stt" class="spin">กำลังโหลด...</div></div><div id="ed"></div>`;
     document.getElementById('sd').onchange = e => { if (e.target.value) { st.date = e.target.value; roster(st.date); } };
     document.getElementById('rf').onclick = () => roster(date);
-    document.getElementById('rpdf').onclick = () => { toast('กำลังสร้าง PDF...'); window.PDFX.roster({ date, api }).then(() => toast('สร้าง PDF แล้ว')).catch(fail); };
+    document.getElementById('rpdf').onclick = () => withPdf(() => window.PDFX.roster({ date, api }));
     statsCard(date);
     window.ROSTER.mountEditor(document.getElementById('ed'), { api, date, toast, onChange: d => { st.date = d; roster(d); } });
     try {
