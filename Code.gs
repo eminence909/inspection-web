@@ -5,6 +5,11 @@
  * ตั้งรหัสแอดมินที่ชีต Config (key = adminPin) ค่าเริ่มต้น 1234 ให้เปลี่ยนทันที
  */
 var TZ = 'Asia/Bangkok';
+// ===== ตั้งรหัสผ่านที่นี่ (แก้ได้เลย แล้ว Deploy เวอร์ชันใหม่) =====
+// ถ้าเว้นว่าง '' ระบบจะใช้รหัสที่ตั้งไว้ในชีต Config / หน้าตั้งค่าแทน
+var ADMIN_PIN = '1234';   // รหัสแอดมิน
+var ROSTER_PIN = '5678';  // รหัสผู้จัดเวร
+// ==============================================================
 var SHEETS = {
   Inspections: ['key', 'kind', 'date', 'level', 'room', 'scores', 'total', 'submittedAt', 'updatedAt', 'submittedDate'],
   Teams: ['key', 'kind', 'date', 'level', 'names', 'buildingOpen', 'updatedAt'],
@@ -68,10 +73,12 @@ function cfg_(k) {
 }
 function out_(o) { return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON); }
 function key_(kind, date, level, room) { return [kind, date, level, room].filter(function (x) { return x !== undefined && x !== ''; }).join('|'); }
-function checkAdmin_(p) { if (String(p.pin) !== String(cfg_('adminPin'))) throw new Error('รหัสแอดมินไม่ถูกต้อง'); }
+function adminPin_() { return ADMIN_PIN || cfg_('adminPin'); }
+function rosterPin_() { return ROSTER_PIN || cfg_('rosterPin') || '5678'; }
+function checkAdmin_(p) { if (String(p.pin) !== String(adminPin_())) throw new Error('รหัสแอดมินไม่ถูกต้อง'); }
 function checkRoster_(p) {
-  var rp = cfg_('rosterPin') || '5678', pin = String(p.pin);
-  if (pin !== String(rp) && pin !== String(cfg_('adminPin'))) throw new Error('รหัสผ่านไม่ถูกต้อง');
+  var pin = String(p.pin);
+  if (pin !== String(rosterPin_()) && pin !== String(adminPin_())) throw new Error('รหัสผ่านไม่ถูกต้อง');
 }
 var ROSTER_SECTIONS = ['flag', 'late', 'classroom', 'zone', 'pnn', 'radio'];
 function validDate_(d) { return /^\d{4}-\d{2}-\d{2}$/.test(d) && d <= today_(); }
@@ -195,6 +202,7 @@ var ACTIONS = {
   },
   adminSetRosterPin: function (p) {
     checkAdmin_(p);
+    if (ROSTER_PIN) throw new Error('รหัสผู้จัดเวรถูกตั้งไว้ในโค้ด Apps Script (ROSTER_PIN) ให้แก้ที่นั่น');
     if (!p.newPin || String(p.newPin).length < 4) throw new Error('รหัสใหม่ต้องมีอย่างน้อย 4 ตัว');
     var ex = rows_('Config').filter(function (r) { return r.key === 'rosterPin'; })[0];
     put_('Config', { key: 'rosterPin', value: p.newPin }, ex && ex._row);
@@ -247,6 +255,7 @@ var ACTIONS = {
   },
   adminChangePin: function (p) {
     checkAdmin_(p);
+    if (ADMIN_PIN) throw new Error('รหัสแอดมินถูกตั้งไว้ในโค้ด Apps Script (ADMIN_PIN) ให้แก้ที่นั่น');
     if (!p.newPin || String(p.newPin).length < 4) throw new Error('รหัสใหม่ต้องมีอย่างน้อย 4 ตัว');
     var ex = rows_('Config').filter(function (r) { return r.key === 'adminPin'; })[0];
     put_('Config', { key: 'adminPin', value: p.newPin }, ex && ex._row);
