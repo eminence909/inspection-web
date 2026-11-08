@@ -73,7 +73,7 @@
         if (x) h += `<tr data-key="${esc(x.key)}"><td class="l"><b>${st.level}/${r}</b></td>${items.map(i => `<td><input data-i="${i.id}" data-max="${i.max}" value="${x.scores[i.id]}" inputmode="numeric"></td>`).join('')}<td><b class="tt">${x.total}</b></td></tr>`;
         else h += `<tr><td class="l"><b>${st.level}/${r}</b></td><td colspan="${items.length + 1}" class="na l">${un[r] ? esc(un[r].reason + (un[r].text ? ' · ' + un[r].text : '')) : NA}</td></tr>`;
       }
-      document.getElementById('tbl').outerHTML = h + '</table></div><div class="row"><button class="btn sec" id="hist" style="margin-top:12px">ดูประวัติการแก้ไข</button><button class="btn warn" id="dpdf" style="margin-top:12px">PDF ม.1–6</button><button class="btn sec" id="dimg" style="margin-top:12px">รูปภาพ ม.${st.level}</button></div><div id="hl"></div>';
+      document.getElementById('tbl').outerHTML = h + '</table></div><div class="row"><button class="btn sec" id="hist" style="margin-top:12px">ดูประวัติการแก้ไข</button><button class="btn warn" id="dpdf" style="margin-top:12px">PDF ม.1–6</button><button class="btn sec" id="dimg" style="margin-top:12px">รูปภาพ ม.' + st.level + '</button></div><div id="hl"></div>';
       pane().querySelectorAll('input[data-i]').forEach(inp => { inp.dataset.old = inp.value; inp.onchange = async () => {
         const v = Number(inp.value), mx = Number(inp.dataset.max);
         if (inp.value === '' || isNaN(v) || v < 0 || v > mx) { inp.value = inp.dataset.old; return toast('คะแนนต้องอยู่ระหว่าง 0–' + mx); }
