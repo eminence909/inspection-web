@@ -157,3 +157,20 @@ mark{background:var(--ac);color:var(--ac-ink);border-radius:4px;padding:0 3px}
 .tcol{flex:1 0 22px;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center}
 .tcol i{display:block;width:100%;background:var(--ac);border-radius:4px 4px 0 0;opacity:.85}
 .tcol small{font-size:10px;color:var(--mut);margin-top:3px;white-space:nowrap}
+
+/* คอลัมน์แรกติดซ้ายเวลาเลื่อนตารางกว้าง */
+table.dt th:first-child,table.dt td:first-child{position:sticky;left:0;z-index:1;background:#14201c;box-shadow:1px 0 0 var(--line)}
+table.dt th:first-child{background:#1a2a24;z-index:2}
+/* มือถือ: ตารางกรอกคะแนนรายวันเป็นการ์ดรายห้อง */
+@media(max-width:640px){
+  .scroll:has(table.cards){border:0;background:none;overflow:visible}
+  table.dt.cards,table.dt.cards tbody{display:block}
+  table.dt.cards tr:first-child{display:none}
+  table.dt.cards tr{display:flex;flex-wrap:wrap;gap:6px;border:1px solid var(--line);border-radius:14px;padding:10px;margin-bottom:10px;background:var(--card)}
+  table.dt.cards td{border:0;padding:0;display:flex;flex-direction:column;align-items:center;flex:0 0 calc(25% - 6px);position:static;box-shadow:none;background:none}
+  table.dt.cards td[data-l]::before{content:attr(data-l);font-size:11px;color:var(--mut);margin-bottom:2px}
+  table.dt.cards td:first-child{flex:0 0 100%;align-items:flex-start;font-size:16px;margin-bottom:2px}
+  table.dt.cards td[colspan]{flex:1 0 100%;align-items:flex-start}
+  table.dt.cards input{width:100%;min-width:0;height:40px;font-size:16px}
+  table.dt.cards td[data-l="รวม"]{flex:0 0 100%;flex-direction:row;justify-content:flex-end;gap:8px;font-size:16px}
+}

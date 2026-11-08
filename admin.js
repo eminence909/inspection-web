@@ -67,10 +67,10 @@
       const by = {}; data.inspections.filter(r => r.level === st.level).forEach(r => by[r.room] = r);
       const team = data.teams.find(t => t.level === st.level), un = {}; data.unavail.filter(u => u.level === st.level).forEach(u => un[u.room] = u);
       let h = `<div class="muted" style="margin-bottom:8px">ผู้ตรวจ: ${team ? esc(team.names.join(', ')) : '— ยังไม่มี'}${team && team.buildingOpen ? ' · อาคาร' + (team.buildingOpen === 'open' ? 'เปิด' : 'ปิด') : ''} · แก้ตัวเลขในช่องได้ทันที (บันทึกประวัติอัตโนมัติ)</div>
-        <div class="scroll"><table class="dt"><tr><th>ห้อง</th>${items.map(i => `<th>${i.id}</th>`).join('')}<th>รวม</th></tr>`;
+        <div class="scroll"><table class="dt cards"><tr><th>ห้อง</th>${items.map(i => `<th>${i.id}</th>`).join('')}<th>รวม</th></tr>`;
       for (let r = 1; r <= CR.ROOMS; r++) {
         const x = by[r];
-        if (x) h += `<tr data-key="${esc(x.key)}"><td class="l"><b>${st.level}/${r}</b></td>${items.map(i => `<td><input data-i="${i.id}" data-max="${i.max}" value="${x.scores[i.id]}" inputmode="numeric"></td>`).join('')}<td><b class="tt">${x.total}</b></td></tr>`;
+        if (x) h += `<tr data-key="${esc(x.key)}"><td class="l"><b>${st.level}/${r}</b></td>${items.map(i => `<td data-l="${i.id}"><input data-i="${i.id}" data-max="${i.max}" value="${x.scores[i.id]}" inputmode="numeric"></td>`).join('')}<td data-l="รวม"><b class="tt">${x.total}</b></td></tr>`;
         else h += `<tr><td class="l"><b>${st.level}/${r}</b></td><td colspan="${items.length + 1}" class="na l">${un[r] ? esc(un[r].reason + (un[r].text ? ' · ' + un[r].text : '')) : NA}</td></tr>`;
       }
       document.getElementById('tbl').outerHTML = h + '</table></div><div class="row"><button class="btn sec" id="hist" style="margin-top:12px">ดูประวัติการแก้ไข</button><button class="btn warn" id="dpdf" style="margin-top:12px">PDF ม.1–6</button><button class="btn sec" id="dimg" style="margin-top:12px">รูปภาพ ม.' + st.level + '</button></div><div id="hl"></div>';
