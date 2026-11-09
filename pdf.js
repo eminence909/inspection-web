@@ -82,6 +82,13 @@
     const dy = ((PAGE_DY[tpl] || {})[level] || 0) * PT;
     return `<div class="pg tp" style="width:816px;height:1056px;padding:0;background:#fff"><img src="tpl/${tpl}-${level}.jpg" style="position:absolute;left:0;top:0;width:816px;height:1056px"><div style="position:absolute;left:0;top:${dy}px;width:816px;height:1056px">${inner}</div></div>`;
   }
+  // ตำแหน่งเส้นจุดในวงเล็บของช่องลงชื่อ (y, pt; แถวที่ 1-2 x ช่องที่ 1-3) วัดจากรูปใบเดิมแต่ละหน้า ใบเดิมเอียงเล็กน้อยจึงไม่เท่ากันทุกช่อง
+  const SIGDOTS = {
+    'classroom-1': [[650.0, 650.0, 650.0], [714.8, 717.4, 718.0]], 'classroom-2': [[650.6, 650.6, 650.0], [716.1, 715.4, 716.1]],
+    'classroom-3': [[650, 650, 650], [716.1, 716.1, 716.1]], 'classroom-4': [[650, 650, 650], [716.1, 716.1, 716.1]],
+    'classroom-5': [[650.6, 650.6, 650.0], [716.1, 715.4, 716.1]], 'classroom-6': [[650, 650, 650], [716.1, 716.1, 716.1]]
+  };
+  for (let l = 1; l <= 6; l++) SIGDOTS['zone-' + l] = [[608.7, 608.7, 608.1], [673.5, 675.5, 676.8]];
   const WDN = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'];
   const MFULL = MONTHS;
 
@@ -118,8 +125,9 @@
     }
     if (kind === 'zone' && FIX_ZONE_HEADING) h += R(72, 345, 217.5, 232.5) + T(72, 460, 217.9, 231.9, 'เกณฑ์การประเมินเขตพื้นที่รับผิดชอบ รวมพลังจิตอาสา พัฒนาเขตพื้นที่', { fs: 14, bold: true, color: '#000', align: 'left' });
     const sx = [[78.3, 201.5], [246.8, 370.1], [412.1, 535.4]];
-    sx.forEach((s, i) => { h += T(s[0] + 6, s[1] - 6, g.names1.y[0], g.names1.y[1], names[i] || '', { fs: 11 }); });
-    [cfg.headBuilding, cfg.councilPresident, cfg.advisor].forEach((n, i) => { if (n) h += T(sx[i][0] + 6, sx[i][1] - 6, g.names2.y[0], g.names2.y[1], n, { fs: 11 }); });
+    const sd = SIGDOTS[kind + '-' + level], ny = d => [d - 9.8, d + 4.2]; // กลางตัวอักษรอยู่เหนือเส้นจุด 2.8 pt
+    sx.forEach((s, i) => { const y = ny(sd[0][i]); h += T(s[0] + 6, s[1] - 6, y[0], y[1], names[i] || '', { fs: 11 }); });
+    [cfg.headBuilding, cfg.councilPresident, cfg.advisor].forEach((n, i) => { if (n) { const y = ny(sd[1][i]); h += T(sx[i][0] + 6, sx[i][1] - 6, y[0], y[1], n, { fs: 11 }); } });
     return tplPage(g.tpl, level, h);
   }
 
