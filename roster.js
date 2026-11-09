@@ -52,8 +52,23 @@
   }
   function matchKnown(raw, known) {
     const k = skel(raw); if (k.length < 3) return null; let best = null, bs = 0;
-    known.forEach(n => { const q = skel(n); if (!q) return; const sc = 1 - lev(k, q) / Math.max(k.length, q.length); if (sc > bs) { bs = sc; best = n; } });
+    known.forEach(n => { // เทียบกับส่วนหัวของข้อความที่อ่านได้ (ตัดขยะท้ายบรรทัดจากช่องข้าง ๆ ได้)
+      const q = skel(n); if (!q) return; let sc = 0;
+      for (let L = Math.max(3, q.length - 2); L <= Math.min(k.length, q.length + 2); L++) sc = Math.max(sc, 1 - lev(k.slice(0, L), q) / q.length);
+      if (sc > bs) { bs = sc; best = n; }
+    });
     return bs >= 0.7 ? best : null;
+  }
+  // ตัดขยะท้ายบรรทัด: เก็บคำนำหน้า + ชื่อ + นามสกุล (อย่างมาก 2 คำ) และหยุดที่คำแรกที่มีตัวเลข/สัญลักษณ์
+  function cleanName(t, cand) {
+    const m = t.match(PFX);
+    if (m) {
+      const rest = t.slice(m.index + m[0].length).trim(), isTh = x => /^[\u0E00-\u0E7F]+$/.test(x);
+      let toks = []; for (const x of rest.split(' ')) { if (!x) continue; if (!isTh(x)) { const lead = x.match(/^[\u0E00-\u0E7F]+/); if (lead && !toks.length) toks.push(lead[0]); break; } toks.push(x); }
+      if (toks.length > 2 && toks.filter(x => x.length <= 2).length > toks.length * 0.4) toks = [toks.join('')]; // ตัวอักษรถูกเว้นวรรคทีละตัว
+      if (toks.length) return m[0] + toks.slice(0, 2).join(' ');
+    }
+    return cand.replace(PFX, '$1 ').replace(/[^\u0E00-\u0E7F ]+.*$/, '').trim();
   }
   function parseOcr(text, known) {
     known = known || []; const map = {}, unknown = [], HS = [[/เสาธง/, 'flag'], [/มาสาย/, 'late'], [/ตรวจห้อง/, 'classroom'], [/ตรวจเขต/, 'zone'], [/ไหว้/, 'pnn'], [/เสียงตามสาย|ประชาสัมพันธ์/, 'radio']];
@@ -73,9 +88,7 @@
       const cand = flat.slice(flat.search(PFX));
       let name = matchKnown(cand, known);
       if (!name) {
-        let ti = t.search(PFX); let raw = ti >= 0 ? t.slice(ti) : cand;
-        const toks = raw.split(' '); if (toks.filter(x => x.length <= 2).length > toks.length * 0.4) raw = cand.replace(PFX, '$1 ');
-        name = raw.replace(/[0-9.,:;]+$/g, '').trim(); unknown.push(name);
+        name = cleanName(t, cand); unknown.push(name);
       }
       const k = sec + '|' + grp; (map[k] = map[k] || []); if (map[k].indexOf(name) < 0) map[k].push(name);
     });
@@ -89,7 +102,13 @@
         const sc = Math.max(1, Math.min(3, 2200 / im.width)), c = document.createElement('canvas'); c.width = Math.round(im.width * sc); c.height = Math.round(im.height * sc);
         const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(im, 0, 0, c.width, c.height);
         const d = g.getImageData(0, 0, c.width, c.height), p = d.data;
-        for (let i = 0; i < p.length; i += 4) { let v = p[i] * .3 + p[i + 1] * .59 + p[i + 2] * .11; v = v < 140 ? 0 : v > 200 ? 255 : (v - 140) * 255 / 60; p[i] = p[i + 1] = p[i + 2] = v; }
+        for (let i = 0; i < p.length; i += 4) { let v = p[i] * .3 + p[i + 1] * .59 + p[i + 2] * .11; v = v < 165 ? 0 : 255; p[i] = p[i + 1] = p[i + 2] = v; }
+        // ลบเส้นตาราง (เส้นยาวแนวนอน/แนวตั้ง) เพราะทำให้ตัวอ่านเห็นเป็นอักขระขยะ
+        const W = c.width, H = c.height, dark = (x, y) => p[(y * W + x) * 4] < 128, wipe = (x, y) => { p[(y * W + x) * 4] = p[(y * W + x) * 4 + 1] = p[(y * W + x) * 4 + 2] = 255; };
+        const hmin = Math.round(W * 0.06), vmin = Math.round(45 * sc), mask = new Uint8Array(W * H);
+        for (let y = 0; y < H; y++) { let x = 0; while (x < W) { if (!dark(x, y)) { x++; continue; } let e = x; while (e < W && dark(e, y)) e++; if (e - x >= hmin) for (let k = x; k < e; k++) mask[y * W + k] = 1; x = e; } }
+        for (let x = 0; x < W; x++) { let y = 0; while (y < H) { if (!dark(x, y)) { y++; continue; } let e = y; while (e < H && dark(x, e)) e++; if (e - y >= vmin) for (let k = y; k < e; k++) mask[k * W + x] = 1; y = e; } }
+        for (let i = 0; i < mask.length; i++) if (mask[i]) { p[i * 4] = p[i * 4 + 1] = p[i * 4 + 2] = 255; }
         g.putImageData(d, 0, 0); URL.revokeObjectURL(url); c.toBlob(b => res(b), 'image/png');
       };
       im.onerror = () => rej(new Error('เปิดรูปภาพไม่ได้')); im.src = url;
@@ -130,7 +149,7 @@
         <textarea id="rp" placeholder="วางที่นี่..." style="min-height:110px"></textarea>
         <button class="btn sec" id="rpb">นำเข้าและแสดงในช่องด้านล่าง</button></details></div>
       <div class="card"><details><summary style="cursor:pointer;font-weight:600;color:var(--b)">อ่านจากรูปภาพ (สกรีนช็อตหรือรูปถ่ายตารางเวร)</summary>
-        <div class="muted" style="margin:6px 0">เลือกรูปตารางเวรทั้งหน้า ระบบอ่านตัวอักษรไทยในเครื่อง แยกหมวดและชั้นให้ แล้วแก้ชื่อให้ตรงรายชื่อที่แอดมินตั้งไว้ ครั้งแรกต้องโหลดตัวอ่านภาษาไทยประมาณ 10 MB (ต้องมีอินเทอร์เน็ต) อาจใช้เวลาสักครู่ และต้องตรวจทานก่อนกดบันทึก</div>
+        <div class="muted" style="margin:6px 0">เลือกรูปตารางเวรทั้งหน้า ระบบอ่านตัวอักษรไทยในเครื่อง แยกหมวดและชั้นให้ แล้วแก้ชื่อให้ตรงรายชื่อที่แอดมินตั้งไว้ ครั้งแรกต้องโหลดตัวอ่านภาษาไทยประมาณ 10 MB (ต้องมีอินเทอร์เน็ต) อาจใช้เวลาสักครู่ และต้องตรวจทานก่อนกดบันทึก<br>เคล็ดลับ: ให้แอดมินใส่รายชื่อสมาชิกสภาทั้งหมดไว้ที่ ตั้งค่า → รายชื่อผู้ตรวจ ระบบจะแก้ชื่อที่อ่านเพี้ยนให้ตรงชื่อจริงเอง</div>
         <input type="file" id="ri" accept="image/*"><button class="btn sec" id="rib">อ่านรูปและแสดงในช่องด้านล่าง</button><div id="rst" class="muted"></div></details></div>
       <div id="rf"></div>
       <button class="btn" id="rs">บันทึกเวรวันที่นี้</button>`;
@@ -166,6 +185,7 @@
         await loadScript('https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js');
         const [blob, init] = await Promise.all([prepImage(f), o.api('init', {}).catch(() => ({ names: [] }))]);
         worker = await window.Tesseract.createWorker('tha', 1, { logger: m => { if (m.status === 'recognizing text') st.textContent = 'กำลังอ่านรูป ' + Math.round(m.progress * 100) + '%'; else if (m.status) st.textContent = 'กำลังเตรียมตัวอ่าน... (' + m.status + ')'; } });
+        await worker.setParameters({ tessedit_pageseg_mode: '6', preserve_interword_spaces: '1' });
         const r = await worker.recognize(blob);
         const out = parseOcr(r.data.text, init.names || []), n = Object.keys(out.map).length;
         if (!n) { st.textContent = 'อ่านไม่พบรายชื่อ ลองใช้รูปที่ชัดและเห็นทั้งตาราง หรือใช้วางจากชีตแทน'; return; }
@@ -181,6 +201,6 @@
     load(date);
   }
 
-  const api = { SECTIONS, parsePaste, parseOcr, matchKnown, viewHtml, mountEditor, mapFromEntries, groupLabel };
+  const api = { SECTIONS, parsePaste, parseOcr, matchKnown, prepImage, viewHtml, mountEditor, mapFromEntries, groupLabel };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.ROSTER = api;
 })(typeof window !== 'undefined' ? window : this);
