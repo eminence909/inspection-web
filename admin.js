@@ -240,10 +240,11 @@
   async function roster(date) {
     date = date || st.date;
     pane().innerHTML = `<div class="card"><div class="tb"><div><label>วันที่</label><input type="date" id="sd" value="${date}" max="${todayISO()}"></div>
-      <button class="btn sec" id="rf" style="margin:0;flex:0 0 100px">รีเฟรช</button><button class="btn warn" id="rpdf" style="margin:0;flex:0 0 140px">PDF ใบเวร</button></div><div id="stt" class="spin">กำลังโหลด...</div></div><div id="ed"></div>`;
+      <button class="btn sec" id="rf" style="margin:0;flex:0 0 100px">รีเฟรช</button><button class="btn warn" id="rpdf" style="margin:0;flex:0 0 110px">PDF ใบเวร</button><button class="btn warn" id="rimg" style="margin:0;flex:0 0 110px">รูปใบเวร</button></div><div id="stt" class="spin">กำลังโหลด...</div></div><div id="ed"></div>`;
     document.getElementById('sd').onchange = e => { if (e.target.value) { st.date = e.target.value; roster(st.date); } };
     document.getElementById('rf').onclick = () => roster(date);
     document.getElementById('rpdf').onclick = () => withPdf(() => window.PDFX.roster({ date, api }));
+    document.getElementById('rimg').onclick = () => withPdf(() => window.PDFX.rosterImage({ date, api }));
     statsCard(date);
     window.ROSTER.mountEditor(document.getElementById('ed'), { api, date, toast, onChange: d => { st.date = d; roster(d); } });
     try {

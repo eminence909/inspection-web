@@ -269,10 +269,14 @@
       await saveCanvas(c, `สรุปรายเดือน_${o.kind}_ม${o.level}_${o.cycle}.jpg`);
     },
     async roster(o) {
-      const cfg = await o.api('adminGetConfig');
-      const es = await o.api('rosterGet', { date: o.date });
+      const cfg = await o.api('init', {}), es = await o.api('rosterGet', { date: o.date });
       const pdf = await build([rosterPage(o.date, es, cfg)], false);
       pdf.save(`ใบเวร_${o.date}.pdf`);
+    },
+    async rosterImage(o) {
+      const cfg = await o.api('init', {}), es = await o.api('rosterGet', { date: o.date });
+      const [c] = await canvases([rosterPage(o.date, es, cfg)]);
+      await saveCanvas(c, `ใบเวร_${o.date}.jpg`);
     }
   };
   PDFX._pages = { dailyPage, weekPage, monthPage, rosterPage };

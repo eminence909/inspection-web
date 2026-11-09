@@ -243,7 +243,7 @@
       try { state = mapFromEntries(await o.api('rosterGet', { date: d })); } catch (e) { state = {}; o.toast && o.toast(e.message); }
       draw();
     }
-    $('rd').onchange = e => { if (e.target.value) { date = e.target.value; load(date); } };
+    $('rd').onchange = e => { if (e.target.value) { date = e.target.value; o.onChange && o.onChange(date); load(date); } };
     $('rcb').onclick = async () => {
       const d = $('rc').value; if (!d) return o.toast && o.toast('เลือกวันที่ต้นทาง');
       try { state = mapFromEntries(await o.api('rosterGet', { date: d })); draw(); o.toast && o.toast('คัดลอกแล้ว กดบันทึกเพื่อยืนยัน'); } catch (e) { o.toast && o.toast(e.message); }
