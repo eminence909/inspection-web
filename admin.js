@@ -307,7 +307,16 @@
         <div class="muted" style="margin-top:6px">เว้นว่างไว้ = เว้นเส้นให้เซ็นด้วยมือ</div><button class="btn" id="sc">บันทึก</button></div>
       <div class="card"><h2>รอบสรุปรายเดือนที่เปิดไว้</h2>${cycles.length ? cycles.map(c => `<div class="row" style="align-items:center;margin:6px 0"><span>${c.kind === 'zone' ? 'เขต' : 'ห้อง'} · ${esc(c.label)} · ${thd(c.startDate)}</span><button class="btn sec" data-d="${c.id}" style="margin:0;flex:0 0 80px;padding:6px">ลบ</button></div>`).join('') : '<div class="muted">ไม่มี</div>'}</div>
       <div class="card"><h2>รหัสผ่านผู้จัดเวร</h2><div class="muted">ลิงก์หน้าจัดเวร: roster.html</div><input type="password" id="rp" placeholder="รหัสใหม่ผู้จัดเวร (อย่างน้อย 4 ตัว)"><button class="btn" id="crp">เปลี่ยนรหัสผู้จัดเวร</button></div>
+      <div class="card"><h2>นำเข้าไฟล์สำรองผลตรวจ</h2><div class="muted">ใช้เมื่อผู้ตรวจส่งผลไม่สำเร็จเพราะไม่มีสัญญาณ แล้วส่งไฟล์สำรอง (.json) มาให้ทางไลน์ เลือกไฟล์แล้วระบบส่งผลเข้าชีตให้</div><input type="file" id="qf" accept=".json,application/json"><button class="btn sec" id="qi">นำเข้าและส่งผล</button><div id="qr" class="muted"></div></div>
       <div class="card"><h2>เปลี่ยนรหัสผ่านแอดมิน</h2><input type="password" id="np" placeholder="รหัสใหม่ (อย่างน้อย 4 ตัว)"><button class="btn" id="cp">เปลี่ยนรหัส</button></div>`;
+      document.getElementById('qi').onclick = async () => {
+        const f = document.getElementById('qf').files[0], out = document.getElementById('qr'); if (!f) return toast('เลือกไฟล์ก่อน');
+        let j; try { j = JSON.parse(await f.text()); } catch (e) { return toast('ไฟล์ไม่ถูกต้อง'); }
+        const items = (j && j.type === 'inspection-queue' && j.items) || []; if (!items.length) return toast('ไม่พบรายการในไฟล์');
+        let ok = 0, bad = []; out.textContent = 'กำลังส่ง...';
+        for (const q of items) { try { await api(q.action, q.params); ok++; } catch (e) { bad.push((q.params && (q.params.level + '/' + q.params.room)) + ': ' + e.message); } }
+        out.innerHTML = 'ส่งสำเร็จ ' + ok + '/' + items.length + (bad.length ? '<br>ไม่สำเร็จ: ' + bad.map(esc).join('<br>') : ''); toast('นำเข้าเสร็จแล้ว');
+      };
       const lines = id => document.getElementById(id).value.split('\n').map(s => s.trim()).filter(Boolean);
       document.getElementById('sn').onclick = () => api('adminSetNames', { list: lines('nm') }).then(() => toast('บันทึกแล้ว')).catch(fail);
       document.getElementById('sr').onclick = () => api('adminSetReasons', { list: lines('rs') }).then(() => toast('บันทึกแล้ว')).catch(fail);

@@ -225,3 +225,20 @@ table.dt th:first-child{background:#1a2a24;z-index:2}
 input[type=date],input[type=month]{display:block;min-height:46px;box-sizing:border-box;-webkit-appearance:none;appearance:none;text-align:left;max-width:100%}
 input[type=date]::-webkit-date-and-time-value,input[type=month]::-webkit-date-and-time-value{text-align:left;min-height:1.2em}
 .card{overflow:hidden}
+
+/* ===== ป้ายสถานะเครือข่าย + สถิติวัน ===== */
+.net{font:inherit;font-size:12px;border-radius:999px;padding:4px 10px;border:1px solid var(--line);background:transparent;color:var(--mut);cursor:pointer;white-space:nowrap}
+.net::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:currentColor;margin-right:6px}
+.net.on{color:var(--ok)}.net.off{color:var(--r);border-color:var(--r)}.net.q{color:var(--o);border-color:var(--o)}
+.dst h3{margin:10px 0 6px;font-size:.98em;color:var(--b)}
+.dcols{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px}
+.lvr{display:grid;grid-template-columns:38px 1fr 44px;gap:8px;align-items:center;margin:5px 0}
+.lvr .prog{margin:0}.lvn{font-weight:700}.lvc{text-align:right;color:var(--mut);font-size:.9em}
+.sc3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:4px}
+.sc3>div{border:1px solid var(--line);border-radius:12px;padding:8px;text-align:center;background:rgba(0,0,0,.2)}
+.sc3 b{display:block;font-size:1.25em}.sc3 small{color:var(--mut);font-size:.78em}
+.dd{margin-top:12px;border-top:1px dashed var(--line);padding-top:10px}.dd summary{cursor:pointer;font-weight:600}
+.pr{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:6px 0}.pr b{flex:0 0 38px}
+.pchip{font:inherit;font-size:.85em;border:1px solid var(--line);background:rgba(0,0,0,.25);color:var(--ink);border-radius:999px;padding:4px 10px;cursor:pointer}
+.ur{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-top:1px dashed var(--line)}.ur span{color:var(--mut);text-align:right}
+@media(max-width:520px){.net.on{font-size:0;padding:7px}.net.on::before{margin:0}.net{padding:4px 8px}}

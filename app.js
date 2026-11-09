@@ -21,15 +21,17 @@
   function kindName() { return S.kind === 'classroom' ? 'ตรวจห้องเรียน' : 'ตรวจเขตพื้นที่'; }
   async function api(action, p) {
     let r;
-    try { r = await fetch(window.API_URL, { method: 'POST', body: JSON.stringify(Object.assign({ action }, p || {})) }); }
+    const ac = typeof AbortController !== 'undefined' ? new AbortController() : null, tm = ac && setTimeout(() => ac.abort(), 20000); // สัญญาณอ่อนจนค้าง ถือว่าไม่มีสัญญาณ
+    try { r = await fetch(window.API_URL, { method: 'POST', body: JSON.stringify(Object.assign({ action }, p || {})), signal: ac ? ac.signal : undefined }); }
     catch (e) { const x = new Error('ไม่มีสัญญาณอินเทอร์เน็ต'); x.net = true; throw x; }
+    finally { if (tm) clearTimeout(tm); }
     const j = await r.json();
     if (!j.ok) throw new Error(j.error);
     return j.data;
   }
   // ---- คิวส่งผลเมื่อไม่มีสัญญาณ ----
   const getQ = () => { try { return JSON.parse(localStorage.getItem('queue') || '[]'); } catch (e) { return []; } };
-  const setQ = q => { try { localStorage.setItem('queue', JSON.stringify(q)); } catch (e) {} };
+  const setQ = q => { try { localStorage.setItem('queue', JSON.stringify(q)); } catch (e) {} setTimeout(() => typeof netPill === 'function' && netPill(), 0); };
   const sameRoom = (a, b) => a.kind === b.kind && a.date === b.date && String(a.level) === String(b.level) && String(a.room) === String(b.room);
   function enqueue(action, params) { const q = getQ().filter(x => !sameRoom(x.params, params)); q.push({ action, params, ts: Date.now() }); setQ(q); }
   let flushing = false;
@@ -46,8 +48,8 @@
     return sent;
   }
   window.addEventListener('online', () => flushQueue().then(() => { if (S.level && S.status && document.getElementById('img')) enterLevel(); }));
-  const qBanner = () => getQ().length ? `<div class="note" style="margin-bottom:12px;display:flex;gap:10px;align-items:center"><span style="flex:1">มีผลตรวจรอส่ง ${getQ().length} รายการ (ส่งอัตโนมัติเมื่อมีสัญญาณ)</span><button class="btn sec" id="qs" style="margin:0;width:auto;padding:8px 14px">ส่งตอนนี้</button></div>` : '';
-  function bindQ() { const b = document.getElementById('qs'); if (b) b.onclick = () => flushQueue().then(n => { if (!n) toast('ยังส่งไม่ได้ ลองใหม่เมื่อมีสัญญาณ'); }); }
+  const qBanner = () => getQ().length ? `<div class="note" style="margin-bottom:12px;display:flex;gap:10px;align-items:center"><span style="flex:1">มีผลตรวจรอส่ง ${getQ().length} รายการ (ส่งอัตโนมัติเมื่อมีสัญญาณ)</span><button class="btn sec" id="qs" style="margin:0;width:auto;padding:8px 14px">ส่งตอนนี้</button><button class="btn sec" id="qx" style="margin:0;width:auto;padding:8px 14px">ไฟล์สำรอง</button></div>` : '';
+  function bindQ() { const b = document.getElementById('qs'); if (b) b.onclick = () => flushQueue().then(n => { if (!n) toast('ยังส่งไม่ได้ ลองใหม่เมื่อมีสัญญาณ'); }); const x = document.getElementById('qx'); if (x) x.onclick = exportQueue; netPill(); }
   function loading() { $app.innerHTML = '<div class="spin">กำลังโหลด...</div>'; }
   function fail(e) { toast(e.message || 'เกิดข้อผิดพลาด'); console.error(e); }
   function header(title, sub, back) {
@@ -83,6 +85,7 @@
         <h1>ตรวจห้องเรียน<br>และเขตพื้นที่</h1>
         <p>${esc(S.init.term || '')}</p></section>
       <div class="stats" id="stats"><div><b>-</b><span>ตรวจห้องเรียน</span></div><div><b>-</b><span>ตรวจเขตพื้นที่</span></div><div><b>72</b><span>ห้องทั้งหมด</span></div><div><b>100</b><span>คะแนนเต็ม</span></div></div>
+      <div id="dstats"></div>
       <div class="card"><label for="dt">วันที่ตรวจ</label>
         <input type="date" id="dt" value="${S.date}" max="${S.init.today}">
         <div class="muted" id="dtl" style="margin-top:6px">${thDate(S.date)}</div></div>
@@ -92,22 +95,28 @@
       </div>
       <button class="rowbtn" id="rosterBtn"><span class="ic">${IC.list}</span><span class="t">ดูเวรประจำวัน</span>${IC.arrow.replace('<svg','<svg width="18" height="18" style="stroke:currentColor;fill:none;stroke-width:2"')}</button>
       <button class="rowbtn" id="guideBtn" style="margin-top:10px"><span class="ic">${IC.help}</span><span class="t">วิธีการใช้งานเว็บนี้</span>${IC.arrow.replace('<svg','<svg width="18" height="18" style="stroke:currentColor;fill:none;stroke-width:2"')}</button>
+      <button class="rowbtn" id="offBtn" style="margin-top:10px"><span class="ic">${IC.list}</span><span class="t">เตรียมใช้งานออฟไลน์<small class="muted" style="display:block;font-weight:400">โหลดข้อมูลวันนี้ไว้ในเครื่อง ใช้ตอนไม่มีสัญญาณ</small></span>${IC.arrow.replace('<svg','<svg width="18" height="18" style="stroke:currentColor;fill:none;stroke-width:2"')}</button>
       <button class="rowbtn" id="lineBtn" style="margin-top:10px"><span class="ic">${IC.help}</span><span class="t">ติดต่อแอดมิน / แจ้งปัญหา (ไลน์)</span>${IC.arrow.replace('<svg','<svg width="18" height="18" style="stroke:currentColor;fill:none;stroke-width:2"')}</button>
       <div style="text-align:center;margin-top:16px"><a href="roster.html" class="muted">สำหรับผู้จัดเวร</a></div>`;
     bindQ();
     document.getElementById('rosterBtn').onclick = viewRoster;
     document.getElementById('guideBtn').onclick = viewGuide;
+    document.getElementById('offBtn').onclick = prepareOffline;
     document.getElementById('lineBtn').onclick = () => {
       const u = (S.init && S.init.lineUrl) || window.LINE_URL || '';
       if (/^https?:\/\//.test(u)) window.open(u, '_blank', 'noopener');
       else toast('แอดมินยังไม่ได้ตั้งลิงก์ไลน์ (แอดมิน: ตั้งค่า > ลิงก์ไลน์แอดมิน)');
     };
-    const loadStats = () => {
-      const d = S.date; api('dayCount', { date: d }).then(r => {
-        if (d !== S.date || !document.getElementById('stats')) return;
-        const b = document.querySelectorAll('#stats b'); const f = (n, u) => (n = Number(n) || 0, u = Number(u) || 0, n + u >= 72) ? '<i class="ok">ครบ</i>' : (n + u) + '/72';
-        b[0].innerHTML = f(r.classroom, r.unClassroom); b[1].innerHTML = f(r.zone, r.unZone);
-      }).catch(() => {});
+    const loadStats = async () => {
+      const d = S.date; let r = null, old = false;
+      try { const x = await cached('ds|' + d, 'dayStats', { date: d }); r = x.d; old = x.old; } catch (e) { r = null; }
+      if (d !== S.date || !document.getElementById('stats')) return;
+      const b = document.querySelectorAll('#stats b'); const f = (n, u) => (n = Number(n) || 0, u = Number(u) || 0, n + u >= 72) ? '<i class="ok">ครบ</i>' : (n + u) + '/72';
+      if (r && r.inspections) {
+        const c = k => r.inspections.filter(x => x.kind === k).length, u = k => r.unavail.filter(x => x.kind === k).length;
+        b[0].innerHTML = f(c('classroom'), u('classroom')); b[1].innerHTML = f(c('zone'), u('zone'));
+        const box = document.getElementById('dstats'); if (box) { box.innerHTML = statsPanel(r, old); bindStats(); }
+      } else api('dayCount', { date: d }).then(q => { if (d !== S.date || !document.getElementById('stats')) return; b[0].innerHTML = f(q.classroom, q.unClassroom); b[1].innerHTML = f(q.zone, q.unZone); }).catch(() => {});
     };
     loadStats();
     const dt = document.getElementById('dt');
@@ -116,6 +125,61 @@
       S.date = dt.value; document.getElementById('dtl').textContent = thDate(S.date); loadStats();
     };
     $app.querySelectorAll('.mcard').forEach(b => b.onclick = () => { S.kind = b.dataset.k; pickLevel(); });
+  }
+
+  // ---------- ใช้งานออฟไลน์ ----------
+  // โหลดข้อมูลที่ต้องใช้ทั้งหมดของวันที่เลือก (ทุกชั้น ทั้งห้องเรียนและเขต + เวร + รายชื่อ) เก็บไว้ในเครื่อง
+  async function prepareOffline() {
+    const d = S.date, jobs = [];
+    CR.LEVELS.forEach(l => ['classroom', 'zone'].forEach(k => jobs.push(['lv|' + k + '|' + d + '|' + l, 'levelData', { kind: k, date: d, level: String(l) }])));
+    jobs.push(['ro|' + d, 'rosterGet', { date: d }], ['rdates', 'rosterDates', {}], ['ds|' + d, 'dayStats', { date: d }], ['init', 'init', {}]);
+    let ok = 0, i = 0;
+    const b = document.getElementById('offBtn');
+    for (const j of jobs) {
+      i++; if (b) b.querySelector('.t').firstChild.textContent = 'กำลังโหลด ' + i + '/' + jobs.length + ' ';
+      try { lsSet(j[0], await api(j[1], j[2])); ok++; } catch (e) { if (e.net) break; }
+    }
+    if (b) b.querySelector('.t').firstChild.textContent = 'เตรียมใช้งานออฟไลน์';
+    lsSet('prepared', { date: d, at: Date.now(), ok });
+    toast(ok === jobs.length ? 'พร้อมใช้งานออฟไลน์แล้ว (วันที่ ' + thDate(d) + ')' : 'โหลดได้ ' + ok + '/' + jobs.length + ' รายการ ลองใหม่เมื่อมีสัญญาณดีขึ้น');
+  }
+  // ป้ายสถานะการเชื่อมต่อ + ผลที่ค้างส่ง (มุมหัวเว็บ)
+  function netPill() {
+    const el = document.getElementById('net'); if (!el) return;
+    const n = getQ().length, off = typeof navigator !== 'undefined' && navigator.onLine === false;
+    el.className = 'net ' + (off ? 'off' : n ? 'q' : 'on');
+    el.textContent = off ? 'ออฟไลน์' + (n ? ' · ค้าง ' + n : '') : n ? 'ค้างส่ง ' + n : 'ออนไลน์';
+    el.title = n ? 'แตะเพื่อส่งผลที่ค้าง' : '';
+  }
+  // ไฟล์สำรองผลที่ค้างส่ง (ส่งให้แอดมินนำเข้าได้ถ้าส่งเองไม่สำเร็จ)
+  function exportQueue() {
+    const q = getQ(); if (!q.length) return toast('ไม่มีผลค้างส่ง');
+    const blob = new Blob([JSON.stringify({ type: 'inspection-queue', exportedAt: new Date().toISOString(), items: q })], { type: 'application/json' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'ผลตรวจค้างส่ง_' + S.date + '.json'; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+    toast('บันทึกไฟล์สำรองแล้ว ส่งให้แอดมินทางไลน์ได้');
+  }
+
+  // ---------- สถิติของวัน (หน้าแรก) ----------
+  function statsPanel(r, old) {
+    const L = CR.LEVELS, RM = CR.ROOMS, KN = { classroom: 'ห้องเรียน', zone: 'เขตพื้นที่' };
+    const key = x => x.kind + '|' + x.level + '|' + x.room;
+    const doneSet = {}; r.inspections.forEach(x => doneSet[key(x)] = x); r.unavail.forEach(x => doneSet[key(x)] = Object.assign({ un: true }, x));
+    const rowFor = k => L.map(l => {
+      const ins = r.inspections.filter(x => x.kind === k && x.level === String(l)).length, un = r.unavail.filter(x => x.kind === k && x.level === String(l)).length, p = Math.round((ins + un) / RM * 100);
+      return `<div class="lvr"><span class="lvn">ม.${l}</span><div class="prog"><i style="width:${p}%"></i></div><span class="lvc">${ins + un}/${RM}</span></div>`;
+    }).join('');
+    const sc = k => { const a = r.inspections.filter(x => x.kind === k); if (!a.length) return '<div class="muted">ยังไม่มีผลตรวจ</div>'; const avg = a.reduce((s, x) => s + x.total, 0) / a.length, hi = a.reduce((m, x) => x.total > m.total ? x : m, a[0]), lo = a.reduce((m, x) => x.total < m.total ? x : m, a[0]);
+      return `<div class="sc3"><div><b>${avg.toFixed(1)}</b><small>เฉลี่ย</small></div><div><b>${hi.total}</b><small>สูงสุด ม.${hi.level}/${hi.room}</small></div><div><b>${lo.total}</b><small>ต่ำสุด ม.${lo.level}/${lo.room}</small></div></div>`; };
+    const pend = k => L.map(l => { const rs = []; for (let i = 1; i <= RM; i++) if (!doneSet[k + '|' + l + '|' + i]) rs.push(i); return rs.length ? `<div class="pr"><b>ม.${l}</b>${rs.map(i => `<button type="button" class="pchip" data-k="${k}" data-l="${l}">${l}/${i}</button>`).join('')}</div>` : ''; }).join('') || '<div class="muted">ตรวจครบทุกห้องแล้ว</div>';
+    const unl = r.unavail.length ? r.unavail.map(x => `<div class="ur"><b>${KN[x.kind]} ${x.level}/${x.room}</b><span>${esc(x.reason || 'ไม่ระบุเหตุผล')}</span></div>`).join('') : '<div class="muted">ไม่มีห้องที่ตรวจไม่ได้</div>';
+    const cnt = k => RM * L.length - r.inspections.filter(x => x.kind === k).length - r.unavail.filter(x => x.kind === k).length;
+    return `<div class="card dst"><h2>สถิติการตรวจวันนี้${old ? ' <small class="muted">(ข้อมูลที่จำไว้)</small>' : ''}</h2>
+      <div class="dcols">${['classroom', 'zone'].map(k => `<div><h3>${KN[k]}</h3>${rowFor(k)}<div class="muted" style="margin-top:6px">คะแนนของวัน</div>${sc(k)}</div>`).join('')}</div>
+      <details class="dd"><summary>ห้องที่ยังไม่ได้ตรวจ <span class="badge warn">${cnt('classroom')} ห้องเรียน · ${cnt('zone')} เขต</span></summary>${['classroom', 'zone'].map(k => `<h3>${KN[k]}</h3>${pend(k)}`).join('')}<div class="muted" style="margin-top:6px">แตะที่ห้องเพื่อไปตรวจชั้นนั้น</div></details>
+      <details class="dd"><summary>ห้องที่ตรวจไม่ได้ <span class="badge ${r.unavail.length ? 'bad' : ''}">${r.unavail.length} ห้อง</span></summary>${unl}</details></div>`;
+  }
+  function bindStats() {
+    document.querySelectorAll('#dstats .pchip').forEach(b => b.onclick = () => { S.kind = b.dataset.k; S.level = b.dataset.l; enterLevel(); });
   }
 
   // ---------- ดูเวร ----------
@@ -426,6 +490,9 @@
     }
   }
 
+  window.addEventListener('online', netPill); window.addEventListener('offline', netPill);
+  { const np = document.getElementById('net'); if (np) np.onclick = () => flushQueue().then(n => { if (!n && getQ().length) toast('ยังส่งไม่ได้ ลองใหม่เมื่อมีสัญญาณ'); }); }
+  netPill(); setInterval(() => { if (getQ().length && navigator.onLine !== false) flushQueue(); netPill(); }, 30000);
   flushQueue();
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
   home();
