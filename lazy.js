@@ -12,9 +12,9 @@
     await Promise.all([
       window.html2canvas ? 0 : load('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js'),
       window.jspdf ? 0 : load('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'),
-      window.SUMMARY ? 0 : load('summary.js'),
-      window.ROSTER ? 0 : load('roster.js')
+      window.SUMMARY ? 0 : load('summary.js?v=20261109c'),
+      window.ROSTER ? 0 : load('roster.js?v=20261109c')
     ]);
-    await load('pdf.js');
+    await load('pdf.js?v=20261109c');
   };
 })();
