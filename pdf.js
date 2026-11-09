@@ -43,7 +43,7 @@
       xs: [86.8, 108.5, 130.1, 151.8, 173.4, 195.1, 216.8, 238.4, 260.1, 281.7, 303.4, 325.0, 346.6, 368.4, 389.9, 411.7, 433.3, 455.0, 476.6, 498.2, 519.9],
       cols: ['1.1', '1.2', '1.3', '1.4', '2.1', '2.2', '2.3', '2.4', '3.1', '3.2', '3.3', '3.4', '4.1', '4.2', '4.3', '4.4', '5.1', '5.2', '5.3', '5.4'],
       total: [519.9, 549.3], rows: [388.6, 402.7, 416.7, 430.8, 444.9, 458.9, 473.0, 487.0, 501.1, 515.1, 529.3, 543.3, 557.4],
-      hdr: { y: [349.5, 365.5], wd: [371.9, 427.1], d: [434.1, 450.7], m: [473.7, 537.1], y4: [553.5, 575.2] },
+      hdr: { y: [349.5, 365.5], wd: [371.9, 427.1], d: [434.1, 450.7], m: [473.7, 537.1], y4: [555.5, 575.2] },
       names1: { y: [640.7, 654.8] }, names2: { y: [705.3, 719.3] }
     },
     dailyZ: {
@@ -76,8 +76,11 @@
   const F = (x0, x1, y0, y1, text, o) => R(x0 - 0.4, x1 + 0.4, y0 + 1.5, y1 - 0.6) + T(x0, x1, y0, y1, text, o); // ปิดจุดไข่ปลาแล้วเขียนข้อความทับ
   const R = (x0, x1, y0, y1) => `<div style="position:absolute;left:${x0 * PT}px;top:${y0 * PT}px;width:${(x1 - x0) * PT}px;height:${(y1 - y0) * PT}px;background:#fff"></div>`;
   const RI = (x0, x1, y0, y1) => R(x0 + 0.9, x1 - 0.9, y0 + 0.9, y1 - 0.9); // ลบเส้นแบ่งช่องภายในแถว
+  // บางหน้าของใบเดิมวางตารางไม่ตรงกับหน้าอื่น (วัดจากรูปแม่แบบทั้ง 36 หน้า) -> เลื่อนทุกอย่างที่วางทับลงตามจำนวน pt
+  const PAGE_DY = { daily_classroom: { 2: 18.3, 5: 18.3 }, month_zone: { 3: 13.1 } };
   function tplPage(tpl, level, inner) {
-    return `<div class="pg tp" style="width:816px;height:1056px;padding:0;background:#fff"><img src="tpl/${tpl}-${level}.jpg" style="position:absolute;left:0;top:0;width:816px;height:1056px">${inner}</div>`;
+    const dy = ((PAGE_DY[tpl] || {})[level] || 0) * PT;
+    return `<div class="pg tp" style="width:816px;height:1056px;padding:0;background:#fff"><img src="tpl/${tpl}-${level}.jpg" style="position:absolute;left:0;top:0;width:816px;height:1056px"><div style="position:absolute;left:0;top:${dy}px;width:816px;height:1056px">${inner}</div></div>`;
   }
   const WDN = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'];
   const MFULL = MONTHS;
