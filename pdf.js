@@ -126,7 +126,7 @@
     if (kind === 'zone' && FIX_ZONE_HEADING) h += R(72, 345, 217.5, 232.5) + T(72, 460, 217.9, 231.9, 'เกณฑ์การประเมินเขตพื้นที่รับผิดชอบ รวมพลังจิตอาสา พัฒนาเขตพื้นที่', { fs: 14, bold: true, color: '#000', align: 'left' });
     const sx = [[78.3, 201.5], [246.8, 370.1], [412.1, 535.4]];
     const sd = SIGDOTS[kind + '-' + level], ny = d => [d - 12.5, d + 1.5]; // ตัวอักษรนั่งบนเส้นจุด (ฐานตัวอักษรเหนือจุดเล็กน้อย) ไม่ทับจุด
-    sx.forEach((s, i) => { const y = ny(sd[0][i]); h += T(s[0] + 6, s[1] - 6, y[0], y[1], names[i] || '', { fs: 11 }); });
+    sx.forEach((s, i) => { const y = ny(sd[0][i]); const nm = i === 2 ? (names[2] || cfg.activityChair || '') : (names[i] || ''); h += T(s[0] + 6, s[1] - 6, y[0], y[1], nm, { fs: 11 }); }); // ช่อง 3 = ผู้ตรวจคนที่ 3 ถ้ามี ไม่เช่นนั้นเป็นชื่อประธานกิจกรรมที่แอดมินตั้ง
     [cfg.headBuilding, cfg.councilPresident, cfg.advisor].forEach((n, i) => { if (n) { const y = ny(sd[1][i]); h += T(sx[i][0] + 6, sx[i][1] - 6, y[0], y[1], n, { fs: 11 }); } });
     return tplPage(g.tpl, level, h);
   }

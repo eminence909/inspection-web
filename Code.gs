@@ -130,7 +130,7 @@ var ACTIONS = {
         names: rows_('Names').map(function (r) { return r.name; }),
         reasons: rows_('Reasons').map(function (r) { return r.reason; }),
         schoolName: cfg_('schoolName'), term: cfg_('term'),
-        headBuilding: cfg_('headBuilding'), councilPresident: cfg_('councilPresident'), advisor: cfg_('advisor')
+        headBuilding: cfg_('headBuilding'), councilPresident: cfg_('councilPresident'), advisor: cfg_('advisor'), activityChair: cfg_('activityChair')
       };
       cache.put('init', JSON.stringify(o), 300);
     }
@@ -283,7 +283,7 @@ var ACTIONS = {
   adminSetConfig: function (p) {
     checkAdmin_(p);
     CacheService.getScriptCache().remove('init');
-    var allow = ['schoolName', 'term', 'headBuilding', 'councilPresident', 'advisor', 'deputyDirector', 'director'];
+    var allow = ['schoolName', 'term', 'headBuilding', 'councilPresident', 'activityChair', 'advisor', 'deputyDirector', 'director'];
     var cur = rows_('Config');
     Object.keys(p.values || {}).forEach(function (k) {
       if (allow.indexOf(k) < 0) return;
