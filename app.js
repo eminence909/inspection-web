@@ -7,6 +7,7 @@
     arrow: '<svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>',
     leaf: '<svg viewBox="0 0 24 24"><path d="M11 20A7 7 0 0 1 4 13c0-6 6-9 16-9 0 10-3 16-9 16z"/><path d="M4 21c3-6 6-9 11-12"/></svg>',
     school: '<svg viewBox="0 0 24 24"><path d="M3 21h18M5 21V9l7-5 7 5v12"/><path d="M9 21v-6h6v6M12 10h.01"/></svg>',
+    help: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.6 2.2c-.7.4-1.1 1-1.1 1.8M12 17h.01"/></svg>',
     list: '<svg viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 9h6M9 13h6M9 17h4"/></svg>'
   };
   const S = { kind: null, date: null, level: null, team: null, status: null, init: null, room: null, scores: {}, editing: false, stack: [] };
@@ -90,9 +91,11 @@
         <button class="mcard" data-k="classroom"><span class="go">${IC.arrow}</span><span class="ic">${IC.school}</span><span><b>ตรวจห้องเรียน</b><small>The SMART Classroom</small></span></button>
       </div>
       <button class="rowbtn" id="rosterBtn"><span class="ic">${IC.list}</span><span class="t">ดูเวรประจำวัน</span>${IC.arrow.replace('<svg','<svg width="18" height="18" style="stroke:currentColor;fill:none;stroke-width:2"')}</button>
+      <button class="rowbtn" id="guideBtn" style="margin-top:10px"><span class="ic">${IC.help}</span><span class="t">วิธีการใช้งานเว็บนี้</span>${IC.arrow.replace('<svg','<svg width="18" height="18" style="stroke:currentColor;fill:none;stroke-width:2"')}</button>
       <div style="text-align:center;margin-top:16px"><a href="roster.html" class="muted">สำหรับผู้จัดเวร</a></div>`;
     bindQ();
     document.getElementById('rosterBtn').onclick = viewRoster;
+    document.getElementById('guideBtn').onclick = viewGuide;
     const loadStats = () => {
       const d = S.date; api('dayCount', { date: d }).then(r => {
         if (d !== S.date || !document.getElementById('stats')) return;
@@ -110,6 +113,23 @@
   }
 
   // ---------- ดูเวร ----------
+  // ---------- วิธีการใช้งาน ----------
+  const GUIDE = [
+    ['เลือกวันที่และประเภท', 'หน้าแรกเลือกวันที่ตรวจ (ย้อนหลังได้ แต่เลือกวันล่วงหน้าไม่ได้) แล้วเลือก "ตรวจเขตพื้นที่" หรือ "ตรวจห้องเรียน"'],
+    ['เลือกระดับชั้นและใส่ชื่อผู้ตรวจ', 'เลือกชั้น ม.1–ม.6 ที่อยู่ในเวรของคุณ จากนั้นเลือกชื่อผู้ตรวจ 1–3 คน ระบบติ๊กชื่อตามตารางเวรของวันนั้นให้ ถ้ามีชื่ออื่นเพิ่มสามารถพิมพ์เองได้ ถ้าไม่แน่ใจว่าเวรของใคร กด "ดูเวรประจำวัน" ที่หน้าแรกแล้วค้นหาชื่อตัวเอง'],
+    ['อาคารเปิดหรือปิด (เฉพาะตรวจห้องเรียน)', 'เลือกว่าอาคารเปิดหรือปิด ถ้าห้องไหนตรวจไม่ได้ เช่น ห้องล็อก ให้ติ๊กห้องนั้นแล้วเลือกเหตุผลหรือพิมพ์เพิ่ม ห้องเหล่านี้จะไม่ถูกนำมาคิดคะแนน'],
+    ['เลือกห้องแล้วให้คะแนน', 'กดห้องที่ยังไม่ตรวจ แล้วกดปุ่มคะแนนทีละข้อ ถ้าไม่แน่ใจกด "ดูเกณฑ์คะแนน" จะเห็นคำอธิบายของแต่ละระดับ ทำครบทุกข้อในหมวดหนึ่ง ระบบจะเลื่อนไปหมวดถัดไปให้เอง'],
+    ['ตรวจสอบและส่ง', 'หน้าตรวจสอบจะเห็นคะแนนรายข้อ ผลรวมแต่ละหมวด และคะแนนรวม ถ้าถูกต้องกด "ยืนยันส่งผลตรวจ" ถ้าคะแนนดูผิดปกติ เช่น 0 หรือเต็มทุกข้อ ระบบจะเตือนให้ตรวจอีกครั้ง'],
+    ['แก้ไขหลังส่ง', 'ห้องที่ส่งแล้วจะขึ้น "ตรวจแล้ว" และแก้ไขได้ภายในวันเดียวกันที่ส่ง ถ้าต้องการแก้ภายหลังให้แจ้งแอดมิน'],
+    ['ไม่มีสัญญาณอินเทอร์เน็ต', 'ยังตรวจและกดส่งได้ ผลจะเก็บในเครื่องแล้วขึ้น "รอส่ง" เมื่อกลับมามีสัญญาณระบบจะส่งให้เอง อย่าล้างข้อมูลเบราว์เซอร์ก่อนส่งเสร็จ'],
+    ['ตรวจครบแล้ว: บันทึกใบ เซ็นชื่อ และอัปลงไลน์', 'เมื่อตรวจครบทุกห้องของชั้นนั้น กด "ดาวน์โหลดใบประเมินเป็นรูปภาพ" เพื่อบันทึกใบ จากนั้นนำใบไปเซ็นชื่อให้ครบ แล้วนำใบที่เซ็นแล้วไปอัปโหลดลงอัลบั้มในไลน์กลุ่ม']
+  ];
+  function viewGuide() {
+    bar(); header('วิธีการใช้งาน', 'สำหรับผู้ตรวจ', home);
+    $app.innerHTML = GUIDE.map((g, i) => `<div class="card" style="display:flex;gap:12px"><div class="gno">${i + 1}</div><div><h3 style="margin-bottom:4px">${esc(g[0])}</h3><div>${esc(g[1])}</div></div></div>`).join('') +
+      `<div class="note" style="margin-top:4px"><b>อย่าลืม:</b> หลังตรวจเสร็จต้องบันทึกใบ นำไปเซ็นชื่อ และอัปลงอัลบั้มในไลน์กลุ่มทุกครั้ง</div>`;
+  }
+
   async function viewRoster() {
     bar(); header('ดูเวร', thDate(S.date), home); loading();
     try {
@@ -246,7 +266,7 @@
       else if (done[r]) h += `<button class="tile done ${bandCls(done[r].total)}" data-r="${r}" data-s="done">${S.level}/${r}<small>${done[r].pending ? 'รอส่ง' : 'ตรวจแล้ว'} ${done[r].total}</small></button>`;
       else h += `<button class="tile" data-r="${r}" data-s="new">${S.level}/${r}<small>ยังไม่ตรวจ</small></button>`;
     }
-    h += `</div></div><button class="btn sec" id="img" ${n ? '' : 'disabled'}>ดาวน์โหลดใบประเมินเป็นรูปภาพ</button>${n + Object.keys(un).length >= CR.ROOMS ? '<div class="muted" style="text-align:center;margin-top:8px">ตรวจครบทุกห้องแล้ว</div>' : ''}`;
+    h += `</div></div><button class="btn sec" id="img" ${n ? '' : 'disabled'}>ดาวน์โหลดใบประเมินเป็นรูปภาพ</button>${n + Object.keys(un).length >= CR.ROOMS ? '<div class="note" style="margin-top:10px"><b>ตรวจครบทุกห้องแล้ว</b><br>1) กดดาวน์โหลดใบเป็นรูปภาพเพื่อบันทึกใบ 2) นำใบไปเซ็นชื่อ 3) อัปใบที่เซ็นแล้วลงอัลบั้มในไลน์กลุ่ม</div>' : ''}`;
     $app.innerHTML = h;
     document.getElementById('img').onclick = async () => {
       const b = document.getElementById('img'); b.disabled = true; b.textContent = 'กำลังสร้างรูปภาพ...';

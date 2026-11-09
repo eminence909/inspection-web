@@ -197,3 +197,5 @@ table.dt th:first-child{background:#1a2a24;z-index:2}
 }
 
 .fsz{background:transparent;border:1px solid var(--line);color:var(--ink);border-radius:999px;padding:4px 11px;cursor:pointer;font:inherit;font-size:13px;margin-right:8px}
+
+.gno{flex:0 0 34px;height:34px;border-radius:50%;background:var(--ac-soft);color:var(--ac);display:grid;place-items:center;font-weight:700}
