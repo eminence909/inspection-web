@@ -233,6 +233,7 @@
         const all = []; s.groups.forEach(g => (state[s.id + '|' + g] || []).forEach(n => all.push(n)));
         dupes(all).forEach(n => msgs.push('"' + n + '" ซ้ำในหมวด ' + s.title));
       });
+      SECTIONS.forEach(s => { if (s.id === 'classroom' || s.id === 'zone') s.groups.forEach(g => { const n = (state[s.id + '|' + g] || []).length; if (n > 3) msgs.push(groupLabel(g) + ' ' + s.title + ' มีผู้ตรวจ ' + n + ' คน (ใบรายวันมีช่องลายเซ็นผู้ตรวจแค่ 3 คน)'); }); });
       const bySec = {}; SECTIONS.forEach(s => { const set = {}; s.groups.forEach(g => (state[s.id + '|' + g] || []).forEach(n => set[bare(n)] = n)); bySec[s.id] = set; });
       const seen = {}; SECTIONS.forEach(s => Object.keys(bySec[s.id]).forEach(k => { (seen[k] = seen[k] || { n: bySec[s.id][k], t: [] }).t.push(s.title); }));
       Object.keys(seen).forEach(k => { if (seen[k].t.length > 1) msgs.push('"' + seen[k].n + '" อยู่หลายหมวดในวันเดียวกัน (' + seen[k].t.join(', ') + ')'); });
