@@ -116,7 +116,7 @@
     };
     document.getElementById('up').onclick = load;
     document.getElementById('pdf').onclick = () => exportPdf('week');
-    document.getElementById('img').onclick = () => st.cur ? withPdf(() => window.PDFX.weekImage({ kind: st.kind, cur: st.cur, week: st.week, level: document.getElementById('il').value })) : toast('รอโหลดข้อมูลก่อน');
+    document.getElementById('img').onclick = () => st.cur ? withPdf(() => window.PDFX.weekImage({ kind: st.kind, cur: st.cur, week: st.week, api, level: document.getElementById('il').value })) : toast('รอโหลดข้อมูลก่อน');
     load();
   }
   function levelWeekTable(L, dates) {
@@ -171,7 +171,7 @@
     };
     document.getElementById('up').onclick = load;
     document.getElementById('pdf').onclick = () => exportPdf('month');
-    document.getElementById('img').onclick = () => st.cur ? withPdf(() => window.PDFX.monthImage({ kind: st.kind, cur: st.cur, cycle: st.cycle, cycleLabel: st.cycleLabel, level: document.getElementById('il').value })) : toast('รอโหลดข้อมูลก่อน');
+    document.getElementById('img').onclick = () => st.cur ? withPdf(() => window.PDFX.monthImage({ kind: st.kind, cur: st.cur, cycle: st.cycle, cycleLabel: st.cycleLabel, api, level: document.getElementById('il').value })) : toast('รอโหลดข้อมูลก่อน');
     load();
   }
   function exportPdf(type) {

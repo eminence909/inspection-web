@@ -133,24 +133,32 @@
   const mapFromEntries = es => { const m = {}; (es || []).forEach(e => m[e.section + '|' + (e.grp || '')] = e.names.slice()); return m; };
   const entriesFromMap = m => Object.keys(m).filter(k => m[k].length).map(k => { const i = k.indexOf('|'); return { section: k.slice(0, i), grp: k.slice(i + 1), names: m[k] }; });
 
-  // หน้าดูเวร (อ่านอย่างเดียว) q = คำค้นชื่อ: แสดงเฉพาะแถวที่มีชื่อนั้นและไฮไลต์
+  // หน้าดูเวร (อ่านอย่างเดียว) แบบการ์ด q = คำค้นชื่อ: แสดงเฉพาะชื่อที่ตรงและไฮไลต์
+  const SCOL = { flag: '#e3b341', late: '#e8806a', classroom: '#6fb8e6', zone: '#b7d43a', pnn: '#c796e6', radio: '#5fd0b5' };
   function viewHtml(entries, q) {
     const m = mapFromEntries(entries), key = String(q || '').trim().toLowerCase();
     if (!entries.length) return '<div class="card"><div class="note">ยังไม่มีการจัดเวรของวันนี้</div></div>';
     const hl = n => { if (!key) return esc(n); const i = n.toLowerCase().indexOf(key); return i < 0 ? esc(n) : esc(n.slice(0, i)) + '<mark>' + esc(n.slice(i, i + key.length)) + '</mark>' + esc(n.slice(i + key.length)); };
     let hit = 0;
     const html = SECTIONS.map(s => {
-      const rows = s.groups.map(g => {
+      const boxes = s.groups.map(g => {
         let n = m[s.id + '|' + g]; if (!n) return '';
         if (key) n = n.filter(x => x.toLowerCase().indexOf(key) >= 0);
         if (!n.length) return '';
         hit += n.length;
-        return `<tr><td style="width:34%;font-weight:600;vertical-align:top">${esc(groupLabel(g))}</td><td>${n.map(hl).join('<br>')}</td></tr>`;
+        const lab = groupLabel(g);
+        return `<div class="rbox">${lab ? `<div class="rh"><span class="lv">${esc(lab)}</span><small>${n.length} คน</small></div>` : ''}${n.map((x, i) => `<div class="nm"><span class="no">${i + 1}</span><span>${hl(x)}</span></div>`).join('')}</div>`;
       }).join('');
-      return rows ? `<div class="card"><h3>${esc(s.title)}</h3><table style="width:100%;border-collapse:collapse">${rows}</table></div>` : '';
+      return boxes ? `<section class="rsec" style="--sc:${SCOL[s.id]}"><h3>${esc(s.title)}</h3><div class="rgrid${s.groups.length === 1 ? ' one' : ''}">${boxes}</div></section>` : '';
     }).join('');
     if (key && !hit) return '<div class="card"><div class="note">ไม่พบชื่อ "' + esc(q) + '" ในเวรวันนี้</div></div>';
     return html;
+  }
+  const thShort = d => { const [y, m, dd] = d.split('-').map(Number), W = ['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.'], M = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.']; return W[new Date(y, m - 1, dd).getDay()] + ' ' + dd + ' ' + M[m - 1] + ' ' + String(y + 543).slice(2); };
+  // แถบวันที่ย้อนหลัง: dates = [{date,count}] cur = วันที่เลือกอยู่ today = วันนี้
+  function historyHtml(dates, cur, today) {
+    const list = dates.slice(); if (today && !list.some(x => x.date === today)) list.unshift({ date: today, count: 0 });
+    return '<div class="hist">' + list.map(x => `<button type="button" class="hchip${x.date === cur ? ' on' : ''}" data-d="${x.date}"><b>${esc(x.date === today ? 'วันนี้' : thShort(x.date))}</b><small>${x.count ? x.count + ' ชื่อ' : 'ยังไม่จัด'}</small></button>`).join('') + '</div>';
   }
 
   // ตัดคำนำหน้า/ช่องว่าง เพื่อเทียบชื่อ
@@ -185,6 +193,8 @@
       <div class="card"><details><summary style="cursor:pointer;font-weight:600;color:var(--b)">อ่านจากรูปภาพ (สกรีนช็อตหรือรูปถ่ายตารางเวร)</summary>
         <div class="muted" style="margin:6px 0">เลือกรูปตารางเวรทั้งหน้า ระบบอ่านตัวอักษรไทยในเครื่อง แยกหมวดและชั้นให้ แล้วแก้ชื่อให้ตรงรายชื่อที่แอดมินตั้งไว้ ครั้งแรกต้องโหลดตัวอ่านภาษาไทยประมาณ 10 MB (ต้องมีอินเทอร์เน็ต) อาจใช้เวลาสักครู่ และต้องตรวจทานก่อนกดบันทึก<br>เคล็ดลับ: ให้แอดมินใส่รายชื่อสมาชิกสภาทั้งหมดไว้ที่ ตั้งค่า → รายชื่อผู้ตรวจ ระบบจะแก้ชื่อที่อ่านเพี้ยนให้ตรงชื่อจริงเอง</div>
         <input type="file" id="ri" accept="image/*"><button class="btn sec" id="rib">อ่านรูปและแสดงในช่องด้านล่าง</button><div id="rst" class="muted"></div></details></div>
+      <div class="card"><h3 style="margin:0 0 8px">เวรย้อนหลัง / ปัจจุบัน</h3><div class="muted" style="margin-bottom:8px">แตะวันที่เพื่อเปิดดูและแก้ไขเวรของวันนั้น</div><div id="rh"></div>
+        <details style="margin-top:10px"><summary style="cursor:pointer;font-weight:600;color:var(--b)">ดูเวรวันที่เลือกแบบอ่าน</summary><div id="rv" style="margin-top:8px"></div></details></div>
       <div class="card"><details><summary style="cursor:pointer;font-weight:600;color:var(--b)">รายชื่อผู้ตรวจ (ใช้เติมชื่ออัตโนมัติ)</summary>
         <div class="muted" style="margin:6px 0">หนึ่งชื่อต่อหนึ่งบรรทัด ใช้ร่วมกับรายชื่อในระบบแอดมิน แก้ที่ไหนก็ตรงกัน</div>
         <textarea id="nml" style="min-height:140px"></textarea><div id="nmw"></div>
@@ -238,10 +248,19 @@
       try { await o.api('rosterSetNames', { list }); known = list; o.toast && o.toast('บันทึกรายชื่อแล้ว'); } catch (e) { o.toast && o.toast(e.message); }
     };
     loadNames();
+    let hdates = [];
+    const todayISO = () => new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10);
+    function drawHist() {
+      const h = $('rh'); h.innerHTML = historyHtml(hdates, date, todayISO());
+      h.querySelectorAll('.hchip').forEach(b => b.onclick = () => { date = b.dataset.d; $('rd').value = date; o.onChange && o.onChange(date); load(date); h.scrollIntoView({ block: 'nearest' }); });
+      const on = h.querySelector('.on'); if (on && on.scrollIntoView) on.scrollIntoView({ block: 'nearest', inline: 'center' });
+    }
+    const loadHist = () => o.api('rosterDates', {}).then(d => { hdates = d || []; drawHist(); }).catch(() => drawHist());
     async function load(d) {
       $('rf').innerHTML = '<div class="spin">กำลังโหลด...</div>';
-      try { state = mapFromEntries(await o.api('rosterGet', { date: d })); } catch (e) { state = {}; o.toast && o.toast(e.message); }
-      draw();
+      let es = [];
+      try { es = await o.api('rosterGet', { date: d }); state = mapFromEntries(es); } catch (e) { state = {}; o.toast && o.toast(e.message); }
+      draw(); drawHist(); $('rv').innerHTML = viewHtml(es, '');
     }
     $('rd').onchange = e => { if (e.target.value) { date = e.target.value; o.onChange && o.onChange(date); load(date); } };
     $('rcb').onclick = async () => {
@@ -272,12 +291,12 @@
       finally { btn.disabled = false; if (worker) worker.terminate().catch(() => {}); }
     };
     $('rs').onclick = async () => {
-      try { await o.api('rosterSave', { date, entries: entriesFromMap(state) }); o.toast && o.toast('บันทึกเวรแล้ว'); o.onChange && o.onChange(date); }
+      try { await o.api('rosterSave', { date, entries: entriesFromMap(state) }); o.toast && o.toast('บันทึกเวรแล้ว'); loadHist(); $('rv').innerHTML = viewHtml(entriesFromMap(state).map(e => e), ''); o.onChange && o.onChange(date); }
       catch (e) { o.toast && o.toast(e.message); }
     };
-    load(date);
+    loadHist(); load(date);
   }
 
-  const api = { SECTIONS, parsePaste, parseOcr, matchKnown, prepImage, viewHtml, mountEditor, mapFromEntries, groupLabel };
+  const api = { SECTIONS, parsePaste, parseOcr, matchKnown, prepImage, viewHtml, historyHtml, thShort, mountEditor, mapFromEntries, groupLabel };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.ROSTER = api;
 })(typeof window !== 'undefined' ? window : this);

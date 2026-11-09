@@ -131,9 +131,19 @@
     return tplPage(g.tpl, level, h);
   }
 
+  // ลายเซ็นใบสรุป (สัปดาห์/เดือน): ใส่ชื่อในวงเล็บแถวที่ 2 ตามตำแหน่งจุดไข่ปลาของแม่แบบแต่ละแบบ (วัดจากรูปแม่แบบ)
+  const SUMSIG = { week_classroom: [709.5, 712.1, 713.5], week_zone: [688.6, 691.2, 692.5], month_classroom: [682.0, 684.0, 685.3], month_zone: [684.7, 686.6, 687.9] };
+  const SUMSIG2 = { month_classroom: [737.7, 738.3], month_zone: [739.3, 739.9] }, SUMSIG2_X = [[164.9, 269.0], [329.2, 433.3]];
+  function sumSig(tpl, level, cfg) {
+    cfg = cfg || {}; const d = SUMSIG[tpl], dy = (PAGE_DY[tpl] || {})[level] || 0, sx = [[78.3, 201.5], [246.8, 370.1], [412.1, 535.4]];
+    // หน้าที่ถูกเลื่อนทั้งชั้น (PAGE_DY) แต่ส่วนลายเซ็นของแม่แบบไม่ได้เลื่อนตาม -> ชดเชยกลับ
+    // ใบรายเดือนมีแถวล่าง: รองผู้อำนวยการ / ผู้อำนวยการ
+    const d2 = tpl === 'month_zone' && level === 3 ? [735.1, 735.7] : SUMSIG2[tpl], low = d2 ? [cfg.deputyDirector, cfg.director].map((n, i) => n ? T(SUMSIG2_X[i][0] + 6, SUMSIG2_X[i][1] - 6, d2[i] - 12.5 - dy, d2[i] + 1.5 - dy, n, { fs: 11 }) : '').join('') : '';
+    return low + [cfg.headBuilding, cfg.councilPresident, cfg.advisor].map((n, i) => n ? T(sx[i][0] + 6, sx[i][1] - 6, d[i] - 12.5 - dy, d[i] + 1.5 - dy, n, { fs: 11 }) : '').join('');
+  }
   // ---------- สรุปรายสัปดาห์ ----------
   const SHORT = { gold: 'ทอง', silver: 'เงิน', bronze: 'ทองแดง', pass: 'ผ่านเบื้องต้น', fail: 'ไม่ผ่าน' };
-  function weekPage(kind, w, L) {
+  function weekPage(kind, w, L, cfg) {
     const g = kind === 'classroom' ? G.weekC : G.weekZ, xs = g.xs;
     let h = '';
     const a = dparts(w.dates[0]), e = dparts(w.dates[4]), hr = g.hdrRuns;
@@ -150,11 +160,11 @@
       if (r.count) h += T(xs[6], xs[7], y0, y1, r.total, { fs: 13, bold: true }) + T(xs[7], xs[8], y0, y1, pct(r.percent), { fs: 11.5 }) + T(xs[8], xs[9], y0, y1, SHORT[r.medal.key], { fs: 9.5, wrap: true });
       else h += RI(xs[6], xs[9], y0, y1) + T(xs[6], xs[9], y0, y1, 'ไม่มีการประเมิน', { fs: 10 });
     });
-    return tplPage(g.tpl, L.level, h);
+    return tplPage(g.tpl, L.level, h + sumSig(g.tpl, L.level, cfg));
   }
 
   // ---------- สรุปรายเดือน ----------
-  function monthPage(kind, m, L, label) {
+  function monthPage(kind, m, L, label, cfg) {
     const g = kind === 'classroom' ? G.monC : G.monZ, xs = g.xs;
     const s = dparts(m.mondays[0]), e = dparts(SM.addDays(m.mondays[3], 4));
     let h = F(171, 533.4, g.hy[0] - 1.5, g.hy[1] - 1.5, `${label || MFULL[s.m - 1]} ${s.y}  (${s.d} ${SMON[s.m - 1]} – ${e.d} ${SMON[e.m - 1]} ${e.y})`, { fs: 13, align: 'left' });
@@ -165,8 +175,7 @@
       if (r.count) h += T(xs[5], xs[6], y0, y1, pct(r.total), { fs: 12, bold: true }) + T(xs[6], xs[7], y0, y1, pct(r.percent), { fs: 12 }) + T(xs[7], xs[8], y0, y1, r.award || '', { fs: 10.5, bold: !!r.award });
       else h += RI(xs[5], xs[8], y0, y1) + T(xs[5], xs[8], y0, y1, 'ไม่มีการประเมิน', { fs: 10 });
     });
-    if (kind === 'zone' && FIX_ZONE_HEADING) { /* ใบสรุปเขตไม่มีบรรทัดนี้ */ }
-    return tplPage(g.tpl, L.level, h);
+    return tplPage(g.tpl, L.level, h + sumSig(g.tpl, L.level, cfg));
   }
 
   // ---------- ใบเวร ----------
@@ -236,10 +245,10 @@
       let pages, name, ref;
       if (o.type === 'week') {
         const w = Object.assign({ kind: o.kind }, o.cur.w);
-        pages = w.levels.map(L => weekPage(w.kind, w, L)); ref = o.week;
+        pages = w.levels.map(L => weekPage(w.kind, w, L, cfg)); ref = o.week;
         name = `สรุปรายสัปดาห์_${o.kind}_${o.week}.pdf`;
       } else {
-        const m = o.cur.m; pages = m.levels.map(L => monthPage(o.kind, m, L, o.cycleLabel)); ref = o.cycle;
+        const m = o.cur.m; pages = m.levels.map(L => monthPage(o.kind, m, L, o.cycleLabel, cfg)); ref = o.cycle;
         name = `สรุปรายเดือน_${o.kind}_${o.cycle}.pdf`;
       }
       const pdf = await build(pages, false, 'letter');
@@ -260,12 +269,12 @@
     },
     async weekImage(o) { // o: { kind, cur, week, level }
       const w = Object.assign({ kind: o.kind }, o.cur.w), L = w.levels.find(x => String(x.level) === String(o.level));
-      const [c] = await canvases([weekPage(o.kind, w, L)]);
+      const cfg = o.cfg || (o.api ? await o.api('adminGetConfig') : {}), [c] = await canvases([weekPage(o.kind, w, L, cfg)]);
       await saveCanvas(c, `สรุปรายสัปดาห์_${o.kind}_ม${o.level}_${o.week}.jpg`);
     },
     async monthImage(o) { // o: { kind, cur, cycle, level }
       const L = o.cur.m.levels.find(x => String(x.level) === String(o.level));
-      const [c] = await canvases([monthPage(o.kind, o.cur.m, L, o.cycleLabel)]);
+      const cfg = o.cfg || (o.api ? await o.api('adminGetConfig') : {}), [c] = await canvases([monthPage(o.kind, o.cur.m, L, o.cycleLabel, cfg)]);
       await saveCanvas(c, `สรุปรายเดือน_${o.kind}_ม${o.level}_${o.cycle}.jpg`);
     },
     async roster(o) {

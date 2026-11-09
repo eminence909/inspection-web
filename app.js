@@ -136,14 +136,27 @@
       `<div class="note" style="margin-top:4px"><b>อย่าลืม:</b> หลังตรวจเสร็จต้องบันทึกใบ นำไปเซ็นชื่อ และอัปลงอัลบั้มในไลน์กลุ่มทุกครั้ง</div>`;
   }
 
+  const lsGet = k => { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } };
+  const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
+  // ดึงข้อมูลพร้อมจำไว้ในเครื่อง: ไม่มีเน็ตใช้ข้อมูลที่จำไว้ล่าสุด
+  async function cached(key, action, params) {
+    try { const d = await api(action, params); lsSet(key, d); return { d, old: false }; }
+    catch (e) { const c = lsGet(key); if (e.net && c) return { d: c, old: true }; throw e; }
+  }
   async function viewRoster() {
     bar(); header('ดูเวร', thDate(S.date), home); loading();
     try {
-      const es = await api('rosterGet', { date: S.date });
-      $app.innerHTML = `<div class="card"><label for="rd">วันที่</label><input type="date" id="rd" value="${S.date}" max="${S.init.today}">
-        <div class="muted" style="margin:6px 0 10px">${thDate(S.date)}</div>
-        <label for="rq">ค้นหาชื่อของฉัน</label><input type="text" id="rq" placeholder="พิมพ์ชื่อหรือนามสกุล" autocomplete="off"></div><div id="rl"></div>`;
-      const rl = document.getElementById('rl'), rq = document.getElementById('rq');
+      const [r1, r2] = await Promise.all([cached('ro|' + S.date, 'rosterGet', { date: S.date }), cached('rdates', 'rosterDates', {}).catch(() => ({ d: [], old: false }))]);
+      const es = r1.d, dates = r2.d || [], old = r1.old || r2.old;
+      $app.innerHTML = `${old ? '<div class="note" style="margin-bottom:10px">ออฟไลน์: แสดงข้อมูลที่จำไว้ล่าสุดในเครื่อง</div>' : ''}
+        <div class="card"><h2>เลือกวัน</h2><div id="rh"></div>
+        <label for="rd" style="margin-top:10px">หรือเลือกวันที่เอง</label><input type="date" id="rd" value="${S.date}" max="${S.init.today}">
+        <div class="muted" style="margin:6px 0 4px">${thDate(S.date)}</div></div>
+        <div class="card"><label for="rq">ค้นหาชื่อของฉัน</label><input type="text" id="rq" placeholder="พิมพ์ชื่อหรือนามสกุล" autocomplete="off"></div><div id="rl"></div>`;
+      const rl = document.getElementById('rl'), rq = document.getElementById('rq'), rh = document.getElementById('rh');
+      rh.innerHTML = window.ROSTER.historyHtml(dates, S.date, S.init.today);
+      rh.querySelectorAll('.hchip').forEach(b => b.onclick = () => { S.date = b.dataset.d; viewRoster(); });
+      const on = rh.querySelector('.on'); if (on) rh.scrollLeft = Math.max(0, on.offsetLeft - 20);
       const show = () => { rl.innerHTML = window.ROSTER.viewHtml(es, rq.value); };
       rq.oninput = show; show();
       document.getElementById('rd').onchange = e => { if (e.target.value && e.target.value <= S.init.today) { S.date = e.target.value; viewRoster(); } };

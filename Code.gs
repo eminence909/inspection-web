@@ -161,6 +161,13 @@ var ACTIONS = {
     rows_('Unavail').forEach(function (r) { if (r.date === p.date) { if (r.kind === 'classroom') out.unClassroom++; else if (r.kind === 'zone') out.unZone++; } });
     return out;
   },
+  // สถิติทั้งวัน: ห้องที่ตรวจแล้ว (พร้อมคะแนน) และห้องที่ตรวจไม่ได้ (พร้อมเหตุผล) ใช้แสดงหน้าผู้ตรวจ
+  dayStats: function (p) {
+    var ins = [], un = [];
+    rows_('Inspections').forEach(function (r) { if (r.date === p.date) ins.push({ kind: r.kind, level: String(r.level), room: String(r.room), total: Number(r.total) }); });
+    rows_('Unavail').forEach(function (r) { if (r.date === p.date) un.push({ kind: r.kind, level: String(r.level), room: String(r.room), reason: r.reason || '' }); });
+    return { inspections: ins, unavail: un };
+  },
   // สถานะห้องของระดับชั้นในวันนั้น
   status: function (p) {
     if (!validKind_(p.kind)) throw new Error('ประเภทไม่ถูกต้อง');
@@ -221,6 +228,12 @@ var ACTIONS = {
   rosterGet: function (p) {
     return rows_('Roster').filter(function (r) { return r.date === p.date; })
       .map(function (r) { return { section: r.section, grp: r.grp, names: JSON.parse(r.names || '[]') }; });
+  },
+  // รายการวันที่ที่เคยจัดเวร (ใหม่สุดก่อน) พร้อมจำนวนชื่อ
+  rosterDates: function (p) {
+    var m = {};
+    rows_('Roster').forEach(function (r) { var n = JSON.parse(r.names || '[]').length; m[r.date] = (m[r.date] || 0) + n; });
+    return Object.keys(m).sort().reverse().slice(0, 90).map(function (d) { return { date: d, count: m[d] }; });
   },
   rosterLogin: function (p) { checkRoster_(p); return true; },
   // ส่งทั้งชุดของวัน ทับของเดิม (entries = [{section, grp, names}])
