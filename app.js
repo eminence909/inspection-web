@@ -92,10 +92,16 @@
       </div>
       <button class="rowbtn" id="rosterBtn"><span class="ic">${IC.list}</span><span class="t">ดูเวรประจำวัน</span>${IC.arrow.replace('<svg','<svg width="18" height="18" style="stroke:currentColor;fill:none;stroke-width:2"')}</button>
       <button class="rowbtn" id="guideBtn" style="margin-top:10px"><span class="ic">${IC.help}</span><span class="t">วิธีการใช้งานเว็บนี้</span>${IC.arrow.replace('<svg','<svg width="18" height="18" style="stroke:currentColor;fill:none;stroke-width:2"')}</button>
+      <button class="rowbtn" id="lineBtn" style="margin-top:10px"><span class="ic">${IC.help}</span><span class="t">ติดต่อแอดมิน / แจ้งปัญหา (ไลน์)</span>${IC.arrow.replace('<svg','<svg width="18" height="18" style="stroke:currentColor;fill:none;stroke-width:2"')}</button>
       <div style="text-align:center;margin-top:16px"><a href="roster.html" class="muted">สำหรับผู้จัดเวร</a></div>`;
     bindQ();
     document.getElementById('rosterBtn').onclick = viewRoster;
     document.getElementById('guideBtn').onclick = viewGuide;
+    document.getElementById('lineBtn').onclick = () => {
+      const u = (S.init && S.init.lineUrl) || window.LINE_URL || '';
+      if (/^https?:\/\//.test(u)) window.open(u, '_blank', 'noopener');
+      else toast('แอดมินยังไม่ได้ตั้งลิงก์ไลน์ (แอดมิน: ตั้งค่า > ลิงก์ไลน์แอดมิน)');
+    };
     const loadStats = () => {
       const d = S.date; api('dayCount', { date: d }).then(r => {
         if (d !== S.date || !document.getElementById('stats')) return;

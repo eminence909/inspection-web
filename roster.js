@@ -70,27 +70,43 @@
     }
     return cand.replace(PFX, '$1 ').replace(/[^\u0E00-\u0E7F ]+.*$/, '').trim();
   }
-  function parseOcr(text, known) {
-    known = known || []; const map = {}, unknown = [], HS = [[/เสาธง/, 'flag'], [/มาสาย/, 'late'], [/ตรวจห้อง/, 'classroom'], [/ตรวจเขต/, 'zone'], [/ไหว้/, 'pnn'], [/เสียงตามสาย|ประชาสัมพันธ์/, 'radio']];
-    let sec = null, grp = '', lv = 0;
-    String(text || '').split(/\r?\n/).forEach(line => {
-      const t = thDig(line).replace(/[|_\[\]{}]/g, ' ').replace(/\s+/g, ' ').trim(); if (!t) return;
-      const flat = t.replace(/\s+/g, '');
-      const hasName = PFX.test(flat);
-      const h = !hasName && HS.find(x => x[0].test(flat));
-      if (h) { sec = h[1]; grp = ''; lv = 0; return; }
+  // มีคำสำคัญในบรรทัดไหม (ยอมให้ตัวอ่านผิด 1 ตัวอักษรเมื่อคำยาวพอ)
+  function hasKw(flat, kw) {
+    if (flat.indexOf(kw) >= 0) return true; if (kw.length < 5) return false;
+    for (let i = 0; i + kw.length <= flat.length; i++) if (lev(flat.slice(i, i + kw.length), kw) <= 1) return true;
+    return false;
+  }
+  // input: ข้อความทั้งก้อน หรือรายการบรรทัด [{ text, y }] (y = ตำแหน่งแนวตั้งในรูป ใช้จับว่าชื่อไหนอยู่ข้างป้ายชั้นไหน)
+  function parseOcr(input, known) {
+    known = known || [];
+    const lines = Array.isArray(input) ? input : String(input || '').split(/\r?\n/).map((t, i) => ({ text: t, y: i }));
+    const HS = [['เสาธง', 'flag'], ['มาสาย', 'late'], ['ตรวจห้อง', 'classroom'], ['ตรวจเขต', 'zone'], ['ไหว้', 'pnn'], ['เสียงตามสาย', 'radio'], ['ประชาสัมพันธ์', 'radio']];
+    const items = []; let sec = null, lv = 0;
+    lines.forEach(L => {
+      const t = thDig(L.text).replace(/[|_\[\]{}]/g, ' ').replace(/\s+/g, ' ').trim(); if (!t) return;
+      const flat = t.replace(/\s+/g, ''), hasP = PFX.test(flat);
+      if (!hasP) { const h = HS.find(x => hasKw(flat, x[0])); if (h) { sec = h[1]; lv = 0; return; } }
+      if (!sec) return;
+      let label = null;
       if (sec === 'classroom' || sec === 'zone') {
-        if (/สายชั้น|ปีที่|มัธยม/.test(flat) && !/โรงเรียน/.test(flat)) { const d = flat.match(/ปีที่([1-6])/); lv++; grp = d ? d[1] : String(Math.min(lv, 6)); if (d) lv = Number(d[1]); }
-      } else if (sec === 'pnn') {
-        if (/โรงอาหาร/.test(flat)) grp = 'หน้าโรงอาหาร'; else if (/ป้อมยาม/.test(flat)) grp = 'หน้าป้อมยาม';
-      }
-      if (!hasName || !sec) return; if ((sec === 'classroom' || sec === 'zone') && !grp) return;
-      const cand = flat.slice(flat.search(PFX));
-      let name = matchKnown(cand, known);
-      if (!name) {
-        name = cleanName(t, cand); unknown.push(name);
-      }
-      const k = sec + '|' + grp; (map[k] = map[k] || []); if (map[k].indexOf(name) < 0) map[k].push(name);
+        if (/สายชั้น|ปีที่|มัธยม/.test(flat) && !/โรงเรียน/.test(flat)) { const d = flat.match(/ปีที่([1-6])/); lv = d && Number(d[1]) > lv ? Number(d[1]) : lv + 1; label = String(Math.min(lv, 6)); }
+      } else if (sec === 'pnn') { if (/โรงอาหาร/.test(flat)) label = 'หน้าโรงอาหาร'; else if (/ป้อมยาม/.test(flat)) label = 'หน้าป้อมยาม'; }
+      if (label) items.push({ sec, kind: 'label', y: L.y, grp: label });
+      // ชื่อ: มีคำนำหน้า หรือ (คำนำหน้าอ่านผิด) ใกล้เคียงชื่อในรายชื่อแอดมิน
+      const cand = hasP ? flat.slice(flat.search(PFX)) : flat.replace(/^[0-9.]+/, '');
+      let name = hasP || known.length ? matchKnown(cand, known) : null, unk = false;
+      if (!name && hasP) { name = cleanName(t, cand); unk = true; }
+      if (name) items.push({ sec, kind: 'name', y: L.y, name, unk });
+    });
+    const map = {}, unknown = [], put = (sec, grp, name, unk) => { const k = sec + '|' + grp; (map[k] = map[k] || []); if (map[k].indexOf(name) < 0) { map[k].push(name); if (unk) unknown.push(name); } };
+    ['flag', 'late', 'radio', 'classroom', 'zone', 'pnn'].forEach(sc => {
+      const its = items.filter(i => i.sec === sc), labels = its.filter(i => i.kind === 'label');
+      its.filter(i => i.kind === 'name').forEach(n => {
+        if (sc === 'flag' || sc === 'late' || sc === 'radio') return put(sc, '', n.name, n.unk);
+        let best = null, bd = 1e9; // ป้ายที่อยู่ใกล้ที่สุดตามแนวตั้ง (เท่ากันให้ป้ายที่อยู่ถัดลงไป เพราะชื่อแรกของกลุ่มอยู่เหนือป้าย)
+        labels.forEach(l => { const d = Math.abs(l.y - n.y); if (d < bd || (d === bd && l.y > n.y)) { bd = d; best = l; } });
+        if (best) put(sc, best.grp, n.name, n.unk);
+      });
     });
     return { map, unknown };
   }
@@ -187,7 +203,8 @@
         worker = await window.Tesseract.createWorker('tha', 1, { logger: m => { if (m.status === 'recognizing text') st.textContent = 'กำลังอ่านรูป ' + Math.round(m.progress * 100) + '%'; else if (m.status) st.textContent = 'กำลังเตรียมตัวอ่าน... (' + m.status + ')'; } });
         await worker.setParameters({ tessedit_pageseg_mode: '6', preserve_interword_spaces: '1' });
         const r = await worker.recognize(blob);
-        const out = parseOcr(r.data.text, init.names || []), n = Object.keys(out.map).length;
+        const dl = (r.data.lines || []).filter(l => l.text && l.bbox).map(l => ({ text: l.text, y: (l.bbox.y0 + l.bbox.y1) / 2 }));
+        const out = parseOcr(dl.length ? dl : r.data.text, init.names || []), n = Object.keys(out.map).length;
         if (!n) { st.textContent = 'อ่านไม่พบรายชื่อ ลองใช้รูปที่ชัดและเห็นทั้งตาราง หรือใช้วางจากชีตแทน'; return; }
         state = out.map; draw();
         st.textContent = 'อ่านได้ ' + n + ' ช่อง' + (out.unknown.length ? ' · ชื่อที่ไม่ตรงรายชื่อแอดมิน (ตรวจแก้): ' + out.unknown.join(', ') : ' · ชื่อทั้งหมดตรงรายชื่อแอดมิน') + ' · ตรวจแล้วกดบันทึก';
