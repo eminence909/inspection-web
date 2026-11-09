@@ -1,9 +1,9 @@
 // เก็บไฟล์หน้าเว็บไว้ใช้ตอนไม่มีสัญญาณ (ลองโหลดใหม่ก่อน ถ้าไม่ได้ใช้ของที่เก็บไว้)
-const C = 'insp-v1';
+const C = 'insp-v2';
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
 self.addEventListener('fetch', e => {
   const u = new URL(e.request.url);
   if (e.request.method !== 'GET' || u.origin !== location.origin) return;
-  e.respondWith(fetch(e.request).then(r => { const c = r.clone(); caches.open(C).then(x => x.put(e.request, c)); return r; }).catch(() => caches.match(e.request)));
+  e.respondWith(fetch(e.request, { cache: 'no-cache' }).then(r => { const c = r.clone(); caches.open(C).then(x => x.put(e.request, c)); return r; }).catch(() => caches.match(e.request)));
 });
