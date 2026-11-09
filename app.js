@@ -257,7 +257,7 @@
       tmp.names.forEach(n => { if (list.indexOf(n) < 0) list.push(n); });
       let h = `<div class="card"><h2>ผู้ตรวจ <span class="muted">(1–3 คน)</span></h2>${!S.team && (S.rosterNames || []).length ? '<div class="note" style="margin-bottom:8px">ติ๊กชื่อจากเวรวันนี้ให้แล้ว แก้ไขได้</div>' : ''}<div class="chips">` +
         list.map(n => `<button class="chip ${tmp.names.includes(n) ? 'on' : ''}" data-n="${esc(n)}">${esc(n)}</button>`).join('') +
-        `</div><div class="row"><input type="text" id="nn" placeholder="พิมพ์ชื่อเพิ่ม"><button class="btn sec" id="add" style="margin:0;flex:0 0 90px">เพิ่ม</button></div>
+        `</div><div class="row"><input type="text" id="nn" placeholder="พิมพ์ชื่อเพิ่ม (มีชื่อแนะนำให้เลือก)" autocomplete="off"><button class="btn sec" id="add" style="margin:0;flex:0 0 90px">เพิ่ม</button></div><div class="sug" id="nsug"></div>
         <div class="muted" style="margin-top:6px">เลือกแล้ว ${tmp.names.length}/3 คน</div></div>`;
       if (S.kind === 'classroom') {
         h += `<div class="card"><h2>อาคารเรียนวันนี้</h2><div class="seg">
@@ -272,11 +272,23 @@
         if (i >= 0) tmp.names.splice(i, 1); else if (tmp.names.length < 3) tmp.names.push(n); else toast('เลือกได้สูงสุด 3 คน');
         draw();
       });
-      document.getElementById('add').onclick = () => {
-        const v = document.getElementById('nn').value.trim(); if (!v) return;
+      const addName = v => {
+        v = v.trim(); if (!v) return;
         if (tmp.names.length >= 3) return toast('เลือกได้สูงสุด 3 คน');
-        if (!tmp.names.includes(v)) tmp.names.push(v); draw();
+        const R = window.ROSTER, dup = tmp.names.find(x => R.bare(x) === R.bare(v));
+        if (dup) return toast('มีชื่อนี้อยู่แล้ว: ' + dup);
+        tmp.names.push(v); draw();
       };
+      const nn = document.getElementById('nn'), sg = document.getElementById('nsug');
+      nn.oninput = () => {
+        const R = window.ROSTER, q = nn.value.trim();
+        const pool = S.init.names.filter(x => !tmp.names.some(y => R.bare(y) === R.bare(x)));
+        const hits = q.length >= 1 ? R.suggest(q, pool, 5) : [];
+        sg.innerHTML = hits.map(x => '<button type="button" class="chip" data-s="' + esc(x) + '">' + esc(x) + '</button>').join('');
+        sg.querySelectorAll('[data-s]').forEach(b => b.onclick = () => addName(b.dataset.s));
+      };
+      nn.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); const f = sg.querySelector('[data-s]'); addName(f ? f.dataset.s : nn.value); } };
+      document.getElementById('add').onclick = () => addName(nn.value);
       $app.querySelectorAll('[data-o]').forEach(b => b.onclick = () => { tmp.open = b.dataset.o; draw(); });
       bindUnavail(draw);
       document.getElementById('go').onclick = saveTeam;

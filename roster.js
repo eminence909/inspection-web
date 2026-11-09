@@ -297,6 +297,6 @@
     loadHist(); load(date);
   }
 
-  const api = { SECTIONS, parsePaste, parseOcr, matchKnown, prepImage, viewHtml, historyHtml, thShort, mountEditor, mapFromEntries, groupLabel };
+  const api = { SECTIONS, parsePaste, parseOcr, matchKnown, prepImage, viewHtml, historyHtml, thShort, suggest, bare, mountEditor, mapFromEntries, groupLabel };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.ROSTER = api;
 })(typeof window !== 'undefined' ? window : this);
