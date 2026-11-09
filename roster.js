@@ -153,6 +153,24 @@
     return html;
   }
 
+  // ตัดคำนำหน้า/ช่องว่าง เพื่อเทียบชื่อ
+  const bare = n => String(n || '').replace(/^\s*(นางสาว|นาง|นาย|เด็กชาย|เด็กหญิง|ด\.ช\.|ด\.ญ\.|น\.ส\.)/, '').replace(/\s+/g, '');
+  // ชื่อในรายชื่อที่ใกล้เคียงกับที่พิมพ์ที่สุด (สูงสุด n ชื่อ)
+  function suggest(q, list, n) {
+    const k = bare(q); if (!k) return [];
+    const out = [];
+    list.forEach(nm => {
+      const b = bare(nm); if (!b) return;
+      let sc;
+      if (b === k) sc = -1; else if (b.indexOf(k) === 0) sc = 0; else if (b.indexOf(k) > 0) sc = 0.5;
+      else { const d = Math.min(lev(k, b.slice(0, k.length)), lev(k, b)); sc = d <= Math.max(1, Math.floor(k.length * 0.34)) ? 1 + d : null; }
+      if (sc !== null) out.push({ nm, sc });
+    });
+    return out.sort((a, b) => a.sc - b.sc).slice(0, n || 4).map(x => x.nm);
+  }
+  // ชื่อซ้ำในรายการ (เทียบแบบไม่สนคำนำหน้า/ช่องว่าง)
+  function dupes(arr) { const m = {}, r = []; arr.forEach(x => { const k = bare(x); if (!k) return; m[k] = (m[k] || 0) + 1; if (m[k] === 2) r.push(x); }); return r; }
+
   // ตัวแก้ไขเวรของวัน
   function mountEditor(el, o) {
     // o: { api(action,params), date, today?, onChange? }
@@ -167,6 +185,11 @@
       <div class="card"><details><summary style="cursor:pointer;font-weight:600;color:var(--b)">อ่านจากรูปภาพ (สกรีนช็อตหรือรูปถ่ายตารางเวร)</summary>
         <div class="muted" style="margin:6px 0">เลือกรูปตารางเวรทั้งหน้า ระบบอ่านตัวอักษรไทยในเครื่อง แยกหมวดและชั้นให้ แล้วแก้ชื่อให้ตรงรายชื่อที่แอดมินตั้งไว้ ครั้งแรกต้องโหลดตัวอ่านภาษาไทยประมาณ 10 MB (ต้องมีอินเทอร์เน็ต) อาจใช้เวลาสักครู่ และต้องตรวจทานก่อนกดบันทึก<br>เคล็ดลับ: ให้แอดมินใส่รายชื่อสมาชิกสภาทั้งหมดไว้ที่ ตั้งค่า → รายชื่อผู้ตรวจ ระบบจะแก้ชื่อที่อ่านเพี้ยนให้ตรงชื่อจริงเอง</div>
         <input type="file" id="ri" accept="image/*"><button class="btn sec" id="rib">อ่านรูปและแสดงในช่องด้านล่าง</button><div id="rst" class="muted"></div></details></div>
+      <div class="card"><details><summary style="cursor:pointer;font-weight:600;color:var(--b)">รายชื่อผู้ตรวจ (ใช้เติมชื่ออัตโนมัติ)</summary>
+        <div class="muted" style="margin:6px 0">หนึ่งชื่อต่อหนึ่งบรรทัด ใช้ร่วมกับรายชื่อในระบบแอดมิน แก้ที่ไหนก็ตรงกัน</div>
+        <textarea id="nml" style="min-height:140px"></textarea><div id="nmw"></div>
+        <button class="btn sec" id="nms">บันทึกรายชื่อ</button></details></div>
+      <div id="rw"></div>
       <div id="rf"></div>
       <button class="btn" id="rs">บันทึกเวรวันที่นี้</button>`;
     const $ = id => el.querySelector('#' + id);
@@ -174,10 +197,47 @@
     function draw() {
       $('rf').innerHTML = SECTIONS.map(s => `<div class="card"><h3>${esc(s.title)}</h3>` + s.groups.map(g => {
         const v = (state[s.id + '|' + g] || []).join('\n');
-        return `<label>${esc(groupLabel(g) || 'รายชื่อ')}</label><textarea data-k="${esc(s.id + '|' + g)}" rows="${Math.max(2, (state[s.id + '|' + g] || []).length + 1)}" style="min-height:0" placeholder="หนึ่งชื่อต่อหนึ่งบรรทัด">${esc(v)}</textarea>`;
+        return `<label>${esc(groupLabel(g) || 'รายชื่อ')}</label><textarea data-k="${esc(s.id + '|' + g)}" rows="${Math.max(2, (state[s.id + '|' + g] || []).length + 1)}" style="min-height:0" placeholder="หนึ่งชื่อต่อหนึ่งบรรทัด พิมพ์แล้วเลือกชื่อที่แนะนำ">${esc(v)}</textarea><div class="sug" data-s="${esc(s.id + '|' + g)}"></div>`;
       }).join('') + '</div>').join('');
-      el.querySelectorAll('textarea[data-k]').forEach(t => t.oninput = () => { state[t.dataset.k] = t.value.split('\n').map(x => x.trim()).filter(Boolean); });
+      el.querySelectorAll('textarea[data-k]').forEach(t => {
+        const box = () => el.querySelector('.sug[data-s="' + t.dataset.k.replace(/"/g, '\\"') + '"]');
+        const upd = () => {
+          state[t.dataset.k] = t.value.split('\n').map(x => x.trim()).filter(Boolean); warn();
+          const pos = t.selectionStart, ls = t.value.lastIndexOf('\n', pos - 1) + 1; let le = t.value.indexOf('\n', pos); if (le < 0) le = t.value.length;
+          const cur = t.value.slice(ls, le).trim(), b = box(); if (!b) return;
+          const sg = cur.length >= 2 ? suggest(cur, known, 4).filter(x => x !== cur) : [];
+          b.innerHTML = sg.map(x => '<button type="button" class="chip" data-n="' + esc(x) + '">' + esc(x) + '</button>').join('');
+          b.querySelectorAll('.chip').forEach(c => c.onmousedown = c.ontouchstart = ev => {
+            ev.preventDefault(); const nm = c.dataset.n; t.value = t.value.slice(0, ls) + nm + t.value.slice(le); const np = ls + nm.length; t.setSelectionRange(np, np);
+            b.innerHTML = ''; state[t.dataset.k] = t.value.split('\n').map(x => x.trim()).filter(Boolean); warn(); t.focus();
+          });
+        };
+        t.oninput = upd; t.onclick = t.onkeyup = upd;
+      });
+      warn();
     }
+    // เตือนชื่อซ้ำ: ในหมวดเดียวกัน (ผิดปกติ) และข้ามหมวดในวันเดียวกัน
+    function warn() {
+      const msgs = [];
+      SECTIONS.forEach(s => {
+        const all = []; s.groups.forEach(g => (state[s.id + '|' + g] || []).forEach(n => all.push(n)));
+        dupes(all).forEach(n => msgs.push('"' + n + '" ซ้ำในหมวด ' + s.title));
+      });
+      const bySec = {}; SECTIONS.forEach(s => { const set = {}; s.groups.forEach(g => (state[s.id + '|' + g] || []).forEach(n => set[bare(n)] = n)); bySec[s.id] = set; });
+      const seen = {}; SECTIONS.forEach(s => Object.keys(bySec[s.id]).forEach(k => { (seen[k] = seen[k] || { n: bySec[s.id][k], t: [] }).t.push(s.title); }));
+      Object.keys(seen).forEach(k => { if (seen[k].t.length > 1) msgs.push('"' + seen[k].n + '" อยู่หลายหมวดในวันเดียวกัน (' + seen[k].t.join(', ') + ')'); });
+      const w = $('rw'); if (w) w.innerHTML = msgs.length ? '<div class="note" style="border-color:#e0a030">ตรวจพบชื่อซ้ำ ตรวจสอบอีกครั้ง:<br>' + msgs.map(esc).join('<br>') + '</div>' : '';
+    }
+    let known = [];
+    const loadNames = () => o.api('init', {}).then(i => { known = i.names || []; $('nml').value = known.join('\n'); nmWarn(); }).catch(() => {});
+    function nmWarn() { const d = dupes($('nml').value.split('\n').map(x => x.trim()).filter(Boolean)); $('nmw').innerHTML = d.length ? '<div class="note" style="border-color:#e0a030">ชื่อซ้ำในรายชื่อ: ' + d.map(esc).join(', ') + '</div>' : ''; }
+    $('nml').oninput = nmWarn;
+    $('nms').onclick = async () => {
+      const list = $('nml').value.split('\n').map(x => x.trim()).filter(Boolean), d = dupes(list);
+      if (d.length && !confirm('มีชื่อซ้ำ: ' + d.join(', ') + '\nบันทึกต่อไปหรือไม่?')) return;
+      try { await o.api('rosterSetNames', { list }); known = list; o.toast && o.toast('บันทึกรายชื่อแล้ว'); } catch (e) { o.toast && o.toast(e.message); }
+    };
+    loadNames();
     async function load(d) {
       $('rf').innerHTML = '<div class="spin">กำลังโหลด...</div>';
       try { state = mapFromEntries(await o.api('rosterGet', { date: d })); } catch (e) { state = {}; o.toast && o.toast(e.message); }

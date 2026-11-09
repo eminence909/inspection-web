@@ -278,6 +278,7 @@ var ACTIONS = {
     checkAdmin_(p);
     return rows_('EditLog').filter(function (r) { return !p.key || r.key === p.key; }).reverse().slice(0, 300);
   },
+  rosterSetNames: function (p) { checkRoster_(p); replaceList_('Names', 'name', p.list); return true; },
   adminSetNames: function (p) { checkAdmin_(p); replaceList_('Names', 'name', p.list); return true; },
   adminSetReasons: function (p) { checkAdmin_(p); replaceList_('Reasons', 'reason', p.list); return true; },
   adminSetConfig: function (p) {
