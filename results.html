@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="theme-color" content="#0d1714">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ประกาศผล | สภานักเรียน</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Thai:wght@600;700&family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css?v=20261110f">
+<script src="font.js?v=20261110f"></script>
+<style>
+.rtabs{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px}
+.rtabs button{flex:1 1 120px;font:inherit;padding:11px 12px;border-radius:14px;border:1px solid var(--line);background:rgba(0,0,0,.25);color:var(--ink);cursor:pointer;font-weight:600}
+#tl button{flex:1 1 56px}.rtabs button.on{background:var(--ac);color:var(--ac-ink);border-color:var(--ac)}
+.prow{display:grid;grid-template-columns:44px 1fr auto;gap:12px;align-items:center;padding:11px 12px;border:1px solid var(--line);border-radius:14px;background:rgba(0,0,0,.18);margin:8px 0}
+.prow .rk{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;font-weight:700;background:rgba(255,255,255,.08)}
+.prow.r1 .rk{background:#e3b341;color:#1a1405}.prow.r2 .rk{background:#c9d1d6;color:#12181c}.prow.r3 .rk{background:#d08a54;color:#1d1007}
+.prow .rm{font-weight:700;font-size:1.05em}.prow .aw{display:block;color:var(--ac);font-size:.88em;font-weight:600}
+.mdl{font-size:.85em;font-weight:700;border-radius:999px;padding:4px 12px;white-space:nowrap;border:1px solid var(--line)}
+.mdl.gold{background:#e3b341;color:#1a1405}.mdl.silver{background:#c9d1d6;color:#12181c}.mdl.bronze{background:#d08a54;color:#1d1007}.mdl.pass{background:rgba(95,207,147,.2);color:var(--ok)}.mdl.fail{background:rgba(229,103,90,.18);color:var(--r)}
+.prow.na{opacity:.6}
+.pub-hero{margin-bottom:14px}
+</style>
+</head>
+<body>
+<header class="top">
+  <a class="icon" href="index.html" aria-label="กลับ"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></a>
+  <div class="ttl"><b>ประกาศผล</b><small>สภานักเรียน</small></div>
+  <button class="fsz" id="fsz" type="button" aria-label="ขนาดตัวอักษร">ก</button>
+</header>
+<main id="app"><div class="spin">กำลังโหลด...</div></main>
+<div id="toast" role="status"></div>
+<script src="config.js?v=20261110f"></script>
+<script>
+(function () {
+  const $app = document.getElementById('app');
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const MEDAL = { gold: 'เหรียญทอง', silver: 'เหรียญเงิน', bronze: 'เหรียญทองแดง', pass: 'ผ่านเกณฑ์เบื้องต้น', fail: 'ไม่ผ่านเกณฑ์' };
+  const S = { kind: 'classroom', type: 'week', ref: null, level: '1' };
+  let LIST = [], old = false;
+  async function load() {
+    try {
+      const r = await fetch(window.API_URL, { method: 'POST', body: JSON.stringify({ action: 'publicResults' }) });
+      const j = await r.json(); if (!j.ok) throw new Error(j.error); LIST = j.data;
+      try { localStorage.setItem('pubres', JSON.stringify(LIST)); } catch (e) {}
+    } catch (e) {
+      try { LIST = JSON.parse(localStorage.getItem('pubres') || 'null'); } catch (x) { LIST = null; }
+      if (!LIST) { $app.innerHTML = '<div class="card">โหลดผลไม่สำเร็จ ลองใหม่เมื่อมีสัญญาณ<br><span class="muted">' + esc(e.message) + '</span></div>'; return; }
+      old = true;
+    }
+    draw();
+  }
+  function draw() {
+    const items = LIST.filter(x => x.kind === S.kind && x.type === S.type);
+    if (!items.some(x => x.ref === S.ref)) S.ref = items[0] ? items[0].ref : null;
+    const cur = items.find(x => x.ref === S.ref);
+    let h = (old ? '<div class="note" style="margin-bottom:10px">ออฟไลน์: แสดงผลที่จำไว้ล่าสุด</div>' : '') +
+      `<section class="hero pub-hero"><div class="bigword">WIN</div><div class="eyebrow">ประกาศผลอย่างเป็นทางการ</div><h1>ผลการประเมิน<br>${S.kind === 'classroom' ? 'ห้องเรียนสะอาด' : 'เขตพื้นที่รับผิดชอบ'}</h1><p>แสดงอันดับและเหรียญของแต่ละห้อง</p></section>
+      <div class="rtabs" id="tk"><button data-v="classroom" class="${S.kind === 'classroom' ? 'on' : ''}">ห้องเรียน</button><button data-v="zone" class="${S.kind === 'zone' ? 'on' : ''}">เขตพื้นที่</button></div>
+      <div class="rtabs" id="tt"><button data-v="week" class="${S.type === 'week' ? 'on' : ''}">รายสัปดาห์</button><button data-v="month" class="${S.type === 'month' ? 'on' : ''}">รายเดือน</button></div>`;
+    if (!cur) { $app.innerHTML = h + '<div class="card"><div class="note">ยังไม่มีผลที่ประกาศในหมวดนี้</div></div>'; bind(); return; }
+    h += `<div class="card"><label>เลือกรอบ</label><select id="pr">${items.map(x => `<option value="${esc(x.ref)}" ${x.ref === S.ref ? 'selected' : ''}>${esc(x.label)}</option>`).join('')}</select>
+      <div class="rtabs" id="tl" style="margin-top:12px">${[1, 2, 3, 4, 5, 6].map(l => `<button data-v="${l}" class="${String(l) === S.level ? 'on' : ''}">ม.${l}</button>`).join('')}</div>`;
+    const L = cur.levels.find(x => String(x.level) === S.level);
+    if (!L) h += '<div class="note">ยังไม่มีผลของชั้นนี้</div>';
+    else {
+      const rooms = L.rooms.slice().sort((a, b) => (a.rank == null) - (b.rank == null) || a.rank - b.rank || Number(a.room) - Number(b.room));
+      h += rooms.map(r => r.rank == null
+        ? `<div class="prow na"><div class="rk">-</div><div class="rm">ม.${S.level}/${esc(r.room)}</div><span class="muted">ไม่มีการประเมิน</span></div>`
+        : `<div class="prow r${r.rank <= 3 ? r.rank : 0}"><div class="rk">${r.rank}</div><div class="rm">ม.${S.level}/${esc(r.room)}${r.award ? '<span class="aw">' + esc(r.award) + '</span>' : ''}</div>${r.medal ? '<span class="mdl ' + esc(r.medal) + '">' + esc(MEDAL[r.medal] || '') + '</span>' : ''}</div>`).join('');
+    }
+    h += '</div><div class="muted" style="text-align:center;margin:10px 0 20px">ประกาศผลโดยคณะกรรมการสภานักเรียน · อัปเดต ' + esc(cur.publishedAt || '') + '</div>';
+    $app.innerHTML = h; bind();
+  }
+  function bind() {
+    const on = (id, fn) => { const el = document.getElementById(id); if (el) el.querySelectorAll('button').forEach(b => b.onclick = () => { fn(b.dataset.v); draw(); }); };
+    on('tk', v => S.kind = v); on('tt', v => S.type = v); on('tl', v => S.level = v);
+    const pr = document.getElementById('pr'); if (pr) pr.onchange = () => { S.ref = pr.value; draw(); };
+  }
+  load();
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+})();
+</script>
+</body>
+</html>

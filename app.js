@@ -94,6 +94,7 @@
         <button class="mcard" data-k="classroom"><span class="go">${IC.arrow}</span><span class="ic">${IC.school}</span><span><b>ตรวจห้องเรียน</b><small>The SMART Classroom</small></span></button>
       </div>
       <button class="rowbtn" id="rosterBtn"><span class="ic">${IC.list}</span><span class="t">ดูเวรประจำวัน</span>${IC.arrow.replace('<svg','<svg width="18" height="18" style="stroke:currentColor;fill:none;stroke-width:2"')}</button>
+      <button class="rowbtn" id="resBtn" style="margin-top:10px"><span class="ic">${IC.list}</span><span class="t">ดูผลประกาศ<small class="muted" style="display:block;font-weight:400">อันดับและเหรียญของแต่ละห้อง</small></span>${IC.arrow.replace('<svg','<svg width="18" height="18" style="stroke:currentColor;fill:none;stroke-width:2"')}</button>
       <button class="rowbtn" id="guideBtn" style="margin-top:10px"><span class="ic">${IC.help}</span><span class="t">วิธีการใช้งานเว็บนี้</span>${IC.arrow.replace('<svg','<svg width="18" height="18" style="stroke:currentColor;fill:none;stroke-width:2"')}</button>
       <button class="rowbtn" id="offBtn" style="margin-top:10px"><span class="ic">${IC.list}</span><span class="t">เตรียมใช้งานออฟไลน์<small class="muted" style="display:block;font-weight:400">โหลดข้อมูลวันนี้ไว้ในเครื่อง ใช้ตอนไม่มีสัญญาณ</small></span>${IC.arrow.replace('<svg','<svg width="18" height="18" style="stroke:currentColor;fill:none;stroke-width:2"')}</button>
       <button class="rowbtn" id="lineBtn" style="margin-top:10px"><span class="ic">${IC.help}</span><span class="t">ติดต่อแอดมิน / แจ้งปัญหา (ไลน์)</span>${IC.arrow.replace('<svg','<svg width="18" height="18" style="stroke:currentColor;fill:none;stroke-width:2"')}</button>
@@ -101,6 +102,7 @@
     bindQ();
     document.getElementById('rosterBtn').onclick = viewRoster;
     document.getElementById('guideBtn').onclick = viewGuide;
+    document.getElementById('resBtn').onclick = () => { location.href = 'results.html'; };
     document.getElementById('offBtn').onclick = prepareOffline;
     document.getElementById('lineBtn').onclick = () => {
       const u = (S.init && S.init.lineUrl) || window.LINE_URL || '';

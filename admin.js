@@ -104,7 +104,7 @@
   async function weekView() {
     pane().innerHTML = `<div class="card"><div class="tb"><button class="btn sec" id="bk" style="margin:0;flex:0 0 100px">กลับ</button>
       <b style="flex:2">สรุป${kn()} ${thd(st.week)} – ${thd(SM.addDays(st.week, 4))}</b>
-      <button class="btn" id="up" style="margin:0">อัปเดต</button><button class="btn warn" id="pdf" style="margin:0">PDF</button>${levelSel('il')}<button class="btn sec" id="img" style="margin:0">รูปภาพ</button></div><div id="wv" class="spin">กำลังโหลด...</div></div>`;
+      <button class="btn" id="up" style="margin:0">อัปเดต</button><button class="btn warn" id="pdf" style="margin:0">PDF</button>${levelSel('il')}<button class="btn sec" id="img" style="margin:0">รูปภาพ</button></div><div id="pub" class="pubbar"></div><div id="wv" class="spin">กำลังโหลด...</div></div>`;
     document.getElementById('bk').onclick = () => { st.week = null; weekly(); };
     const load = async () => {
       document.getElementById('wv').innerHTML = 'กำลังโหลด...';
@@ -116,6 +116,7 @@
     };
     document.getElementById('up').onclick = load;
     document.getElementById('pdf').onclick = () => exportPdf('week');
+    publishBar('week');
     document.getElementById('img').onclick = () => st.cur ? withPdf(() => window.PDFX.weekImage({ kind: st.kind, cur: st.cur, week: st.week, api, level: document.getElementById('il').value })) : toast('รอโหลดข้อมูลก่อน');
     load();
   }
@@ -152,7 +153,7 @@
   async function monthView() {
     pane().innerHTML = `<div class="card"><div class="tb"><button class="btn sec" id="bk" style="margin:0;flex:0 0 100px">กลับ</button>
       <b style="flex:2">สรุป${kn()}รายเดือน ${thd(st.cycle)} – ${thd(SM.addDays(st.cycle, 25))}</b>
-      <button class="btn" id="up" style="margin:0">อัปเดต</button><button class="btn warn" id="pdf" style="margin:0">PDF</button>${levelSel('il')}<button class="btn sec" id="img" style="margin:0">รูปภาพ</button></div><div id="mv" class="spin">กำลังโหลด...</div></div>`;
+      <button class="btn" id="up" style="margin:0">อัปเดต</button><button class="btn warn" id="pdf" style="margin:0">PDF</button>${levelSel('il')}<button class="btn sec" id="img" style="margin:0">รูปภาพ</button></div><div id="pub" class="pubbar"></div><div id="mv" class="spin">กำลังโหลด...</div></div>`;
     document.getElementById('bk').onclick = () => { st.cycle = null; monthly(); };
     const load = async () => {
       document.getElementById('mv').innerHTML = 'กำลังโหลด...';
@@ -171,8 +172,35 @@
     };
     document.getElementById('up').onclick = load;
     document.getElementById('pdf').onclick = () => exportPdf('month');
+    publishBar('month');
     document.getElementById('img').onclick = () => st.cur ? withPdf(() => window.PDFX.monthImage({ kind: st.kind, cur: st.cur, cycle: st.cycle, cycleLabel: st.cycleLabel, api, level: document.getElementById('il').value })) : toast('รอโหลดข้อมูลก่อน');
     load();
+  }
+  // ---------- เผยแพร่ผลออนไลน์ (หน้า results.html) ----------
+  // เผยแพร่เฉพาะอันดับ + เหรียญ (+ รางวัลรายเดือน) ไม่ส่งคะแนนออกไป
+  function publishBar(type) {
+    const box = document.getElementById('pub'); if (!box) return;
+    const ref = type === 'week' ? st.week : st.cycle, id = [st.kind, type, ref].join('|');
+    const link = location.href.replace(/admin\.html.*$/, '') + 'results.html';
+    box.innerHTML = '<span class="muted">กำลังตรวจสอบสถานะการเผยแพร่...</span>';
+    api('publicResults').then(list => {
+      const ex = list.find(x => x.id === id);
+      box.innerHTML = `<div class="note" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span style="flex:1;min-width:200px">${ex ? '<b>เผยแพร่แล้ว</b> (อัปเดตล่าสุด ' + esc(ex.publishedAt || '') + ')' : 'ยังไม่ได้เผยแพร่ผลนี้ให้นักเรียนดู'}<br><small class="muted">แสดงเฉพาะอันดับและเหรียญ ไม่แสดงคะแนน · ลิงก์: ${esc(link)}</small></span>
+        <button class="btn" id="pb" style="margin:0;width:auto;padding:10px 16px">${ex ? 'อัปเดตผลที่เผยแพร่' : 'เผยแพร่ผล'}</button>${ex ? '<button class="btn sec" id="pu" style="margin:0;width:auto;padding:10px 16px">ยกเลิกเผยแพร่</button><button class="btn sec" id="pl" style="margin:0;width:auto;padding:10px 16px">คัดลอกลิงก์</button>' : ''}</div>`;
+      document.getElementById('pb').onclick = () => {
+        if (!st.cur) return toast('รอโหลดข้อมูลก่อน');
+        const rk = rooms => { // อันดับตามร้อยละ (เท่ากันได้อันดับเดียวกัน)
+          const ok = rooms.filter(r => r.count && r.percent !== null).sort((x, y) => y.percent - x.percent); const m = {};
+          ok.forEach((r, i) => { m[r.room] = i > 0 && Math.abs(ok[i - 1].percent - r.percent) < 1e-9 ? m[ok[i - 1].room] : i + 1; }); return m;
+        };
+        let levels, label;
+        if (type === 'week') { const w = st.cur.w; label = 'สัปดาห์ ' + thd(st.week) + ' – ' + thd(SM.addDays(st.week, 4)); levels = w.levels.map(L => { const m = rk(L.rooms); return { level: L.level, rooms: L.rooms.map(r => ({ room: r.room, rank: r.count ? m[r.room] : null, medal: r.count && r.medal ? r.medal.key : '' })) }; }); }
+        else { const mm = st.cur.m; label = (st.cycleLabel || 'รายเดือน') + ' (' + thd(st.cycle) + ' – ' + thd(SM.addDays(st.cycle, 25)) + ')'; levels = mm.levels.map(L => ({ level: L.level, rooms: L.rooms.map(r => ({ room: r.room, rank: r.count ? r.rank : null, medal: r.count && r.medal ? r.medal.key : '', award: r.award || '' })) })); }
+        api('adminSetPublish', { kind: st.kind, type, ref, label, levels }).then(() => { toast('เผยแพร่แล้ว'); publishBar(type); }).catch(fail);
+      };
+      const pu = document.getElementById('pu'); if (pu) pu.onclick = () => confirm('ยกเลิกการเผยแพร่ผลนี้?') && api('adminDelPublish', { id }).then(() => { toast('ยกเลิกแล้ว'); publishBar(type); }).catch(fail);
+      const pl = document.getElementById('pl'); if (pl) pl.onclick = () => { try { navigator.clipboard.writeText(link).then(() => toast('คัดลอกลิงก์แล้ว')); } catch (e) { toast(link); } };
+    }).catch(e => { box.innerHTML = '<div class="note bad">' + esc(e.message) + '</div>'; });
   }
   function exportPdf(type) {
     if (!st.cur) return toast('รอโหลดข้อมูลก่อน');

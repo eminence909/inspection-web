@@ -20,7 +20,8 @@ var SHEETS = {
   Cycles: ['id', 'kind', 'month', 'startDate', 'label'],
   EditLog: ['time', 'by', 'key', 'itemId', 'oldValue', 'newValue'],
   Summaries: ['id', 'kind', 'type', 'ref', 'pdfUrl', 'updatedAt'],
-  Roster: ['key', 'date', 'section', 'grp', 'names', 'updatedAt']
+  Roster: ['key', 'date', 'section', 'grp', 'names', 'updatedAt'],
+  Published: ['id', 'kind', 'type', 'ref', 'label', 'payload', 'publishedAt']
 };
 
 // ---------- helpers ----------
@@ -224,6 +225,26 @@ var ACTIONS = {
     return { total: sc.total };
   },
 
+  // ประกาศผลออนไลน์ (สาธารณะ): มีเฉพาะอันดับ เหรียญ และรางวัล ไม่มีคะแนน ---------------
+  publicResults: function () {
+    return rows_('Published').map(function (r) { return { id: r.id, kind: r.kind, type: r.type, ref: r.ref, label: r.label, publishedAt: r.publishedAt, levels: JSON.parse(r.payload || '[]') }; })
+      .sort(function (a, b) { return a.ref < b.ref ? 1 : a.ref > b.ref ? -1 : 0; }).slice(0, 60);
+  },
+  adminSetPublish: function (p) {
+    checkAdmin_(p);
+    if (!validKind_(p.kind) || (p.type !== 'week' && p.type !== 'month') || !/^\d{4}-\d{2}-\d{2}$/.test(p.ref)) throw new Error('ข้อมูลไม่ถูกต้อง');
+    var id = [p.kind, p.type, p.ref].join('|'), ex = rows_('Published').filter(function (r) { return r.id === id; })[0];
+    // เก็บเฉพาะอันดับ/เหรียญ/รางวัล ตัดฟิลด์อื่นทิ้ง
+    var levels = (p.levels || []).map(function (L) { return { level: String(L.level), rooms: (L.rooms || []).map(function (r) { return { room: String(r.room), rank: r.rank || null, medal: r.medal || '', award: r.award || '' }; }) }; });
+    put_('Published', { id: id, kind: p.kind, type: p.type, ref: p.ref, label: String(p.label || ''), payload: JSON.stringify(levels), publishedAt: now_() }, ex && ex._row);
+    return true;
+  },
+  adminDelPublish: function (p) {
+    checkAdmin_(p);
+    var ex = rows_('Published').filter(function (r) { return r.id === p.id; })[0];
+    if (ex) { sheet_('Published').deleteRow(ex._row); MEMO = {}; }
+    return true;
+  },
   // เวร ---------------------------------------------------------
   rosterGet: function (p) {
     return rows_('Roster').filter(function (r) { return r.date === p.date; })
