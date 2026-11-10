@@ -44,13 +44,13 @@
   // ---------- shell ----------
   function shell() {
     document.getElementById('logout').hidden = false;
-    const tabs = [['daily', 'ผลรายวัน / แก้ไข'], ['weekly', 'สรุปรายสัปดาห์'], ['monthly', 'สรุปรายเดือน'], ['insights', 'ภาพรวม / แจ้งเตือน'], ['roster', 'เวร / สถานะการส่ง'], ['history', 'ประวัติแก้ไขคะแนน'], ['settings', 'ตั้งค่า']];
+    const tabs = [['daily', 'ผลรายวัน / แก้ไข'], ['weekly', 'สรุปรายสัปดาห์'], ['monthly', 'สรุปรายเดือน'], ['insights', 'ภาพรวม / แจ้งเตือน'], ['room', 'ดูรายห้อง'], ['roster', 'เวร / สถานะการส่ง'], ['history', 'ประวัติแก้ไขคะแนน'], ['settings', 'ตั้งค่า']];
     $app.innerHTML = `<div class="tabs" id="tabs">${tabs.map(t => `<button data-t="${t[0]}" class="${st.tab === t[0] ? 'on' : ''}">${t[1]}</button>`).join('')}</div>
       <div class="seg" style="margin-bottom:14px"><button class="tile ${st.kind === 'zone' ? 'sel' : ''}" data-k="zone">เขตพื้นที่</button><button class="tile ${st.kind === 'classroom' ? 'sel' : ''}" data-k="classroom">ห้องเรียน</button></div>
       <div id="pane"></div>`;
     document.querySelectorAll('#tabs button').forEach(b => b.onclick = () => { st.tab = b.dataset.t; shell(); });
     document.querySelectorAll('[data-k]').forEach(b => b.onclick = () => { st.kind = b.dataset.k; st.week = null; shell(); });
-    ({ daily, weekly, monthly, insights, roster, history, settings }[st.tab])();
+    ({ daily, weekly, monthly, insights, room: roomView, roster, history, settings }[st.tab])();
   }
   const pane = () => document.getElementById('pane');
 
@@ -349,6 +349,45 @@
   function statsCard(date) {
     const box = document.createElement('div'); document.getElementById('pane').appendChild(box);
     window.ROSTER.mountStats(box, { api, date, toast });
+  }
+
+  // ---------- ดูรายห้อง: คะแนนย้อนหลังเป็นกราฟ ใช้คุยกับครูที่ปรึกษา ----------
+  async function roomView() {
+    st.rl = st.rl || '1'; st.rr = st.rr || '1'; st.rf = st.rf || SM.addDays(todayISO(), -29); st.rt = st.rt || todayISO();
+    pane().innerHTML = `<div class="card"><h2>ดูรายห้อง (${kn()})</h2>
+      <div class="tb"><div><label>ชั้น</label><select id="rl">${CR.LEVELS.map(l => `<option value="${l}" ${String(l) === st.rl ? 'selected' : ''}>ม.${l}</option>`).join('')}</select></div>
+        <div><label>ห้อง</label><select id="rr">${[...Array(CR.ROOMS)].map((_, i) => `<option value="${i + 1}" ${String(i + 1) === st.rr ? 'selected' : ''}>${i + 1}</option>`).join('')}</select></div></div>
+      <div class="tb"><div><label>ตั้งแต่</label><input type="date" id="rfd" value="${st.rf}" max="${todayISO()}"></div><div><label>ถึง</label><input type="date" id="rtd" value="${st.rt}" max="${todayISO()}"></div></div></div><div id="rv" class="spin">กำลังโหลด...</div>`;
+    const reload = () => { st.rl = document.getElementById('rl').value; st.rr = document.getElementById('rr').value; st.rf = document.getElementById('rfd').value; st.rt = document.getElementById('rtd').value; roomView(); };
+    ['rl', 'rr', 'rfd', 'rtd'].forEach(i => document.getElementById(i).onchange = reload);
+    if (!st.rf || !st.rt || st.rf > st.rt) { document.getElementById('rv').innerHTML = '<div class="note">ช่วงวันที่ไม่ถูกต้อง</div>'; return; }
+    try {
+      const data = await api('adminList', { kind: st.kind, from: st.rf, to: st.rt }), def = CR[st.kind];
+      const mine = data.inspections.filter(x => x.level === st.rl && x.room === st.rr).sort((x, y) => x.date < y.date ? -1 : 1);
+      if (!mine.length) { document.getElementById('rv').innerHTML = '<div class="card"><div class="note">ไม่มีผลตรวจของ ม.' + st.rl + '/' + st.rr + ' ในช่วงนี้</div></div>'; return; }
+      const avg = x => x.reduce((s, v) => s + v, 0) / x.length;
+      // ค่าเฉลี่ยทั้งชั้นรายวัน เทียบกับห้องนี้
+      const lvDay = {}; data.inspections.filter(x => x.level === st.rl).forEach(x => (lvDay[x.date] = lvDay[x.date] || []).push(x.total));
+      const pts = mine.map(x => ({ d: x.date, v: x.total, l: avg(lvDay[x.date]) }));
+      const W = 640, H = 200, P = 28, n = pts.length, allv = pts.map(p => p.v).concat(pts.map(p => p.l)), lo0 = Math.max(0, Math.floor((Math.min.apply(null, allv) - 8) / 5) * 5), hi0 = Math.min(100, Math.ceil((Math.max.apply(null, allv) + 8) / 5) * 5), X = i => P + (n === 1 ? (W - 2 * P) / 2 : i * (W - 2 * P) / (n - 1)), Y = v => H - P - ((v - lo0) / (hi0 - lo0 || 1)) * (H - 2 * P);
+      const line = (k, c, dash) => `<polyline fill="none" stroke="${c}" stroke-width="2.5" ${dash ? 'stroke-dasharray="5 4"' : ''} points="${pts.map((p, i) => X(i) + ',' + Y(p[k])).join(' ')}"/>`;
+      const grid = [0, 1, 2, 3, 4].map(k => Math.round(lo0 + (hi0 - lo0) * k / 4)).map(v => `<line x1="${P}" x2="${W - P}" y1="${Y(v)}" y2="${Y(v)}" stroke="rgba(255,255,255,.1)"/><text x="2" y="${Y(v) + 4}" fill="#8ea69b" font-size="11">${v}</text>`).join('');
+      const dots = pts.map((p, i) => `<circle cx="${X(i)}" cy="${Y(p.v)}" r="3.5" fill="#b9c32f"><title>${thd(p.d)}: ${p.v}</title></circle>`).join('');
+      const step = Math.ceil(n / 8), xl = pts.map((p, i) => i % step === 0 ? `<text x="${X(i)}" y="${H - 8}" fill="#8ea69b" font-size="10" text-anchor="middle">${thd(p.d).split(' ').slice(0, 2).join(' ')}</text>` : '').join('');
+      const chart = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto">${grid}${line('l', '#6fb1d9', true)}${line('v', '#b9c32f')}${dots}${xl}</svg>`;
+      const tv = mine.map(x => x.total), hi = mine.reduce((m, x) => x.total > m.total ? x : m, mine[0]), lo = mine.reduce((m, x) => x.total < m.total ? x : m, mine[0]);
+      // เฉลี่ยรายหมวด (ร้อยละของคะแนนเต็มหมวด) หาจุดที่อ่อนที่สุด
+      const cats = def.categories.map((c, ci) => { const v = mine.map(x => K.dailyTotals(st.kind, x.scores).cats[ci].sum / c.max * 100); return { c, p: avg(v) }; });
+      const weak = cats.reduce((m, x) => x.p < m.p ? x : m, cats[0]);
+      const catBars = cats.map(x => `<div class="brow"><span style="width:62px">หมวด ${x.c.no}</span><div class="bt"><i style="width:${x.p}%"></i></div><b>${x.p.toFixed(0)}%</b></div>`).join('');
+      const rows = mine.slice().reverse().map(x => { const t = K.dailyTotals(st.kind, x.scores); return `<tr><td class="l">${thd(x.date)}</td>${t.cats.map(c => '<td>' + c.sum + '</td>').join('')}<td><b>${x.total}</b></td></tr>`; }).join('');
+      document.getElementById('rv').className = '';
+      document.getElementById('rv').innerHTML = `
+        <div class="card"><h3>ม.${st.rl}/${st.rr} · สรุป</h3><div class="sc3"><div><b>${avg(tv).toFixed(1)}</b><small>เฉลี่ย (${mine.length} วัน)</small></div><div><b>${hi.total}</b><small>สูงสุด ${thd(hi.date)}</small></div><div><b>${lo.total}</b><small>ต่ำสุด ${thd(lo.date)}</small></div></div></div>
+        <div class="card"><h3>คะแนนรายวัน</h3>${chart}<div class="muted"><span style="color:var(--ac)">&#9632;</span> ห้องนี้ &nbsp; <span style="color:var(--b)">&#9632;</span> เฉลี่ยทั้งชั้น ม.${st.rl} (เส้นประ)</div></div>
+        <div class="card"><h3>คะแนนเฉลี่ยรายหมวด</h3>${catBars}<div class="muted">หมวดที่ควรปรับปรุงมากที่สุด: <b>หมวด ${weak.c.no} ${esc(weak.c.title)}</b> (${weak.p.toFixed(0)}%)</div></div>
+        <div class="card"><h3>รายละเอียดรายวัน</h3><div class="scroll"><table class="dt"><tr><th>วันที่</th>${def.categories.map(c => '<th>หมวด ' + c.no + '<br><span class="na">/' + c.max + '</span></th>').join('')}<th>รวม</th></tr>${rows}</table></div></div>`;
+    } catch (e) { document.getElementById('rv').innerHTML = '<div class="note bad">' + esc(e.message) + '</div>'; }
   }
 
   // ---------- ประวัติแก้ไขคะแนน ----------

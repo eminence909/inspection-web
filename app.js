@@ -449,7 +449,7 @@
       if (nxt) setTimeout(() => goTo($app.querySelector(`.item[data-id="${nxt.id}"]`)), 180);
       else {
         const nc = def.categories.find(c => !catDone(c));
-        setTimeout(() => { setOpen(cat.no, false); if (nc) { setOpen(nc.no, true); goTo($app.querySelector(`.cat[data-c="${nc.no}"]`)); } else document.getElementById('rv').scrollIntoView({ block: 'end' }); }, 350);
+        setTimeout(() => { setOpen(cat.no, false); if (nc) { setOpen(nc.no, true); goTo($app.querySelector(`.cat[data-c="${nc.no}"]`)); } else { const rv = document.getElementById('rv'); if (rv) rv.scrollIntoView({ block: 'end' }); } }, 350);
       }
     });
     $app.querySelectorAll('.info').forEach(b => b.onclick = () => b.nextElementSibling.classList.toggle('show'));
@@ -473,6 +473,13 @@
       if (vals.every(x => x.v === 0)) S.anom = 'คุณให้ 0 คะแนนทุกข้อ';
       else if (vals.every(x => x.v === x.max)) S.anom = 'คุณให้คะแนนเต็มทุกข้อ';
       else if (vals.every(x => x.v === vals[0].v)) S.anom = 'คุณให้คะแนนเท่ากันทุกข้อ (' + vals[0].v + ')';
+      else { // คะแนนรวมเท่ากับห้องอื่นของชั้นนี้ที่ตรวจแล้วทุกห้อง (อย่างน้อย 3 ห้อง) อาจกดคะแนนซ้ำโดยไม่ได้ตรวจจริง
+        const others = {};
+        ((S.status && S.status.done) || []).forEach(d => { if (String(d.room) !== String(S.room)) others[d.room] = Number(d.total); });
+        getQ().forEach(q => { const p = q.params || {}; if (p.kind === S.kind && p.date === S.date && String(p.level) === String(S.level) && String(p.room) !== String(S.room) && p.scores) others[p.room] = K.dailyTotals(S.kind, p.scores).total; });
+        const tv = Object.keys(others).map(k => others[k]);
+        if (tv.length >= 2 && tv.every(x => x === t.total)) S.anom = 'คะแนนรวม ' + t.total + ' เท่ากับห้องอื่นที่ตรวจไปแล้วทุกห้อง (' + tv.length + ' ห้อง) ในชั้นนี้';
+      }
     }
     S.confirmAnom = false;
     if (S.anom) h = `<div class="note bad" style="margin-bottom:12px"><b>${S.anom}</b><br>กรุณาตรวจสอบอีกครั้งว่าถูกต้อง ถ้าถูกต้องกดยืนยันส่งสองครั้ง</div>` + h;
