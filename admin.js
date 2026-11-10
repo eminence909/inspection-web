@@ -216,12 +216,14 @@
     try {
       const [cl, zn, ro] = await Promise.all([api('adminList', { kind: 'classroom', from, to }), api('adminList', { kind: 'zone', from, to }), api('adminRosterRange', { from, to })]);
       const today = todayISO(), hourBkk = new Date(Date.now() + 7 * 3600e3).getUTCHours(), late = hourBkk >= 12;
+      let hols = {}; try { (JSON.parse((await api('adminGetConfig')).holidays || '[]')).forEach(h => hols[h.d] = h.r || 'วันหยุด'); } catch (e) {}
       const names = {}; ro.forEach(r => names[r.date + '|' + r.section + '|' + r.grp] = r.names);
       const cnt = (data, d, l) => data.inspections.filter(x => x.date === d && x.level === String(l)).length + data.unavail.filter(x => x.date === d && x.level === String(l)).length;
       const anyDone = d => [cl, zn].some(x => x.inspections.some(i => i.date === d) || x.unavail.some(i => i.date === d));
       const rows = [], off = []; let d = from;
       for (let g = 0; g < 400 && d <= to; g++, d = SM.addDays(d, 1)) {
         const wd = new Date(d + 'T00:00:00Z').getUTCDay(); if (wd === 0 || wd === 6) continue;
+        if (hols[d]) { if (!anyDone(d)) { off.push(d); continue; } }
         if (d === today ? false : !anyDone(d)) { if (d < today) off.push(d); continue; }
         const items = [];
         [['classroom', 'ห้อง', cl], ['zone', 'เขต', zn]].forEach(x => CR.LEVELS.forEach(l => { const n = cnt(x[2], d, l); if (n < CR.ROOMS) items.push({ txt: x[1] + ' ม.' + l + ' (' + n + '/' + CR.ROOMS + ')', who: (names[d + '|' + x[0] + '|' + l] || []).join(', '), zero: n === 0 }); }));
@@ -344,6 +346,9 @@
       <div class="card"><h2>เหตุผลที่ตรวจไม่ได้</h2><div class="muted">หนึ่งเหตุผลต่อหนึ่งบรรทัด</div><textarea id="rs">${esc(init.reasons.join('\n'))}</textarea><button class="btn" id="sr">บันทึกเหตุผล</button></div>
       <div class="card"><h2>ชื่อที่แสดงในเอกสาร PDF</h2>${field('schoolName', 'ชื่อโรงเรียน')}${field('term', 'ภาคเรียน/ปีการศึกษา')}${field('headBuilding', 'หัวหน้าอาคาร/ชื่อผู้ลงนาม (ถ้าต้องการพิมพ์ชื่อ)')}${field('councilPresident', 'ประธานสภานักเรียน')}${field('activityChair', 'ประธานกิจกรรม (พิมพ์ในช่อง ผู้ตรวจ/ประธานกิจกรรม เมื่อผู้ตรวจไม่ถึง 3 คน)')}${field('advisor', 'ที่ปรึกษาสภานักเรียน')}${field('lineUrl', 'ลิงก์ไลน์แอดมิน (เช่น https://line.me/ti/p/~ไอดี) ใช้กับปุ่ม ติดต่อแอดมิน')}${field('deputyDirector', 'รองผู้อำนวยการฝ่ายบริหารงานทั่วไป')}${field('director', 'ผู้อำนวยการโรงเรียน')}
         <div class="muted" style="margin-top:6px">เว้นว่างไว้ = เว้นเส้นให้เซ็นด้วยมือ</div><button class="btn" id="sc">บันทึก</button></div>
+      <div class="card"><h2>วันหยุด / วันไม่ตรวจ</h2><div class="muted">วันที่ระบุไว้จะไม่ถูกนับว่าห้องค้างตรวจ และผู้ตรวจจะเห็นป้ายบอกว่าเป็นวันหยุด</div>
+        <div class="tb" style="margin-top:8px"><div><label>วันที่</label><input type="date" id="hd"></div><div><label>เหตุผล (ถ้ามี)</label><input type="text" id="hr" placeholder="เช่น วันหยุดชดเชย"></div><button class="btn sec" id="ha">เพิ่ม</button></div>
+        <div id="hl"></div></div>
       <div class="card"><h2>รอบสรุปรายเดือนที่เปิดไว้</h2>${cycles.length ? cycles.map(c => `<div class="row" style="align-items:center;margin:6px 0"><span>${c.kind === 'zone' ? 'เขต' : 'ห้อง'} · ${esc(c.label)} · ${thd(c.startDate)}</span><button class="btn sec" data-d="${c.id}" style="margin:0;flex:0 0 80px;padding:6px">ลบ</button></div>`).join('') : '<div class="muted">ไม่มี</div>'}</div>
       <div class="card"><h2>รหัสผ่านผู้จัดเวร</h2><div class="muted">ลิงก์หน้าจัดเวร: roster.html</div><input type="password" id="rp" placeholder="รหัสใหม่ผู้จัดเวร (อย่างน้อย 4 ตัว)"><button class="btn" id="crp">เปลี่ยนรหัสผู้จัดเวร</button></div>
       <div class="card"><h2>นำเข้าไฟล์สำรองผลตรวจ</h2><div class="muted">ใช้เมื่อผู้ตรวจส่งผลไม่สำเร็จเพราะไม่มีสัญญาณ แล้วส่งไฟล์สำรอง (.json) มาให้ทางไลน์ เลือกไฟล์แล้วระบบส่งผลเข้าชีตให้</div><input type="file" id="qf" accept=".json,application/json"><button class="btn sec" id="qi">นำเข้าและส่งผล</button><div id="qr" class="muted"></div></div>
@@ -356,6 +361,15 @@
         for (const q of items) { try { await api(q.action, q.params); ok++; } catch (e) { bad.push((q.params && (q.params.level + '/' + q.params.room)) + ': ' + e.message); } }
         out.innerHTML = 'ส่งสำเร็จ ' + ok + '/' + items.length + (bad.length ? '<br>ไม่สำเร็จ: ' + bad.map(esc).join('<br>') : ''); toast('นำเข้าเสร็จแล้ว');
       };
+      let hol = []; try { hol = JSON.parse(cfg.holidays || '[]'); } catch (e) {}
+      const drawHol = () => {
+        hol.sort((x, y) => x.d < y.d ? -1 : 1);
+        document.getElementById('hl').innerHTML = hol.length ? hol.map((h, i) => `<div class="row" style="align-items:center;margin:6px 0"><span>${thd(h.d)}${h.r ? ' · ' + esc(h.r) : ''}</span><button class="btn sec" data-h="${i}" style="margin:0;flex:0 0 80px;padding:6px">ลบ</button></div>`).join('') : '<div class="muted" style="margin-top:6px">ยังไม่มีวันหยุดที่ตั้งไว้</div>';
+        document.querySelectorAll('[data-h]').forEach(b => b.onclick = () => saveHol(hol.filter((_, i) => i !== Number(b.dataset.h))));
+      };
+      const saveHol = list => api('adminSetConfig', { values: { holidays: JSON.stringify(list) } }).then(() => { hol = list; drawHol(); toast('บันทึกแล้ว'); }).catch(fail);
+      document.getElementById('ha').onclick = () => { const d = document.getElementById('hd').value; if (!d) return toast('เลือกวันที่ก่อน'); if (hol.some(h => h.d === d)) return toast('มีวันนี้อยู่แล้ว'); saveHol(hol.concat([{ d, r: document.getElementById('hr').value.trim() }])); document.getElementById('hd').value = ''; document.getElementById('hr').value = ''; };
+      drawHol();
       const lines = id => document.getElementById(id).value.split('\n').map(s => s.trim()).filter(Boolean);
       document.getElementById('sn').onclick = () => api('adminSetNames', { list: lines('nm') }).then(() => toast('บันทึกแล้ว')).catch(fail);
       document.getElementById('sr').onclick = () => api('adminSetReasons', { list: lines('rs') }).then(() => toast('บันทึกแล้ว')).catch(fail);

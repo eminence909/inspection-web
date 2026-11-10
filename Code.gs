@@ -131,7 +131,7 @@ var ACTIONS = {
         names: rows_('Names').map(function (r) { return r.name; }),
         reasons: rows_('Reasons').map(function (r) { return r.reason; }),
         schoolName: cfg_('schoolName'), term: cfg_('term'),
-        headBuilding: cfg_('headBuilding'), councilPresident: cfg_('councilPresident'), advisor: cfg_('advisor'), activityChair: cfg_('activityChair'), lineUrl: cfg_('lineUrl')
+        headBuilding: cfg_('headBuilding'), councilPresident: cfg_('councilPresident'), advisor: cfg_('advisor'), activityChair: cfg_('activityChair'), lineUrl: cfg_('lineUrl'), holidays: (function () { try { return JSON.parse(cfg_('holidays') || '[]'); } catch (e) { return []; } })()
       };
       cache.put('init', JSON.stringify(o), 300);
     }
@@ -324,7 +324,7 @@ var ACTIONS = {
   adminSetConfig: function (p) {
     checkAdmin_(p);
     CacheService.getScriptCache().remove('init');
-    var allow = ['schoolName', 'term', 'headBuilding', 'councilPresident', 'activityChair', 'lineUrl', 'advisor', 'deputyDirector', 'director'];
+    var allow = ['schoolName', 'term', 'headBuilding', 'councilPresident', 'activityChair', 'lineUrl', 'advisor', 'deputyDirector', 'director', 'holidays'];
     var cur = rows_('Config');
     Object.keys(p.values || {}).forEach(function (k) {
       if (allow.indexOf(k) < 0) return;

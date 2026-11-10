@@ -88,7 +88,7 @@
       <div id="dstats"></div>
       <div class="card"><label for="dt">วันที่ตรวจ</label>
         <input type="date" id="dt" value="${S.date}" max="${S.init.today}">
-        <div class="muted" id="dtl" style="margin-top:6px">${thDate(S.date)}</div></div>
+        <div class="muted" id="dtl" style="margin-top:6px">${thDate(S.date)}</div><div id="hol"></div></div>
       <div class="menu">
         <button class="mcard" data-k="zone"><span class="go">${IC.arrow}</span><span class="ic">${IC.leaf}</span><span><b>ตรวจเขตพื้นที่</b><small>Sripisai Clean Zone</small></span></button>
         <button class="mcard" data-k="classroom"><span class="go">${IC.arrow}</span><span class="ic">${IC.school}</span><span><b>ตรวจห้องเรียน</b><small>The SMART Classroom</small></span></button>
@@ -121,10 +121,12 @@
       } else api('dayCount', { date: d }).then(q => { if (d !== S.date || !document.getElementById('stats')) return; b[0].innerHTML = f(q.classroom, q.unClassroom); b[1].innerHTML = f(q.zone, q.unZone); }).catch(() => {});
     };
     loadStats();
+    const holNote = () => { const h = ((S.init && S.init.holidays) || []).find(x => x.d === S.date); const el = document.getElementById('hol'); if (el) el.innerHTML = h ? '<div class="note" style="margin-top:8px"><b>วันนี้เป็นวันหยุด / ไม่มีการตรวจ</b>' + (h.r ? ' (' + esc(h.r) + ')' : '') + '</div>' : ''; };
+    holNote();
     const dt = document.getElementById('dt');
     dt.onchange = () => {
       if (!dt.value || dt.value > S.init.today) { dt.value = S.init.today; toast('เลือกวันที่ล่วงหน้าไม่ได้'); }
-      S.date = dt.value; document.getElementById('dtl').textContent = thDate(S.date); loadStats();
+      S.date = dt.value; document.getElementById('dtl').textContent = thDate(S.date); holNote(); loadStats();
     };
     $app.querySelectorAll('.mcard').forEach(b => b.onclick = () => { S.kind = b.dataset.k; pickLevel(); });
   }
