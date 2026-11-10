@@ -210,6 +210,22 @@
   // ---------- เวร / สถานะการส่งใบประเมิน ----------
 
   // ---------- ภาพรวม / แจ้งเตือนคะแนนต่ำซ้ำ / ส่งออก CSV ----------
+  // ห้องที่คะแนนดีขึ้น/แย่ลง เทียบสัปดาห์ก่อน (สัปดาห์ของวันที่ "ถึง" เทียบกับสัปดาห์ก่อนหน้า)
+  async function changeCard(toDate) {
+    const box = document.getElementById('wow'); if (!box) return;
+    const dow = new Date(toDate + 'T00:00:00Z').getUTCDay(), mon = SM.addDays(toDate, -((dow + 6) % 7)), prev = SM.addDays(mon, -7);
+    box.innerHTML = '<div class="card spin">กำลังเทียบกับสัปดาห์ก่อน...</div>';
+    try {
+      const data = await api('adminList', { kind: st.kind, from: prev, to: SM.addDays(mon, 4) });
+      const a = SM.weekSummary(st.kind, prev, data), b = SM.weekSummary(st.kind, mon, data), rows = [];
+      b.levels.forEach((L, li) => L.rooms.forEach((r, ri) => { const p = a.levels[li].rooms[ri]; if (r.percent !== null && p.percent !== null) rows.push({ k: L.level + '/' + r.room, p: p.percent, n: r.percent, d: r.percent - p.percent }); }));
+      const up = rows.filter(x => x.d >= 1).sort((x, y) => y.d - x.d).slice(0, 5), dn = rows.filter(x => x.d <= -1).sort((x, y) => x.d - y.d).slice(0, 5);
+      const tb = (l, c) => l.length ? l.map(x => `<div class="odi"><span><b>${x.k}</b></span><span class="muted">${x.p.toFixed(1)} → ${x.n.toFixed(1)} <b style="color:${c}">${x.d > 0 ? '+' : ''}${x.d.toFixed(1)}</b></span></div>`).join('') : '<div class="muted">ไม่มี</div>';
+      box.innerHTML = rows.length ? `<div class="card"><h3>เทียบสัปดาห์ก่อน (${thd(prev)} → ${thd(mon)})</h3><div class="muted" style="margin-bottom:6px">เปรียบเทียบร้อยละเฉลี่ยของ${kn()}เฉพาะห้องที่มีผลตรวจทั้งสองสัปดาห์ (${rows.length} ห้อง) แสดงห้องที่เปลี่ยนตั้งแต่ 1 จุดขึ้นไป</div>
+        <div class="dcols"><div><h3 style="color:var(--ok)">ดีขึ้นมากที่สุด</h3>${tb(up, 'var(--ok)')}</div><div><h3 style="color:var(--r)">แย่ลงมากที่สุด</h3>${tb(dn, 'var(--r)')}</div></div></div>` : '<div class="card"><h3>เทียบสัปดาห์ก่อน</h3><div class="note">ยังไม่มีห้องที่มีผลตรวจครบทั้งสองสัปดาห์ให้เปรียบเทียบ</div></div>';
+    } catch (e) { box.innerHTML = '<div class="card"><div class="note bad">' + esc(e.message) + '</div></div>'; }
+  }
+
   // ห้องที่ยังไม่ได้ตรวจ/ส่งไม่ครบ ในช่วงวันที่ (วันที่ไม่มีการตรวจเลยทั้งโรงเรียนถือว่าเป็นวันหยุด ไม่นับค้าง)
   async function overdueCard(from, to) {
     const box = document.getElementById('od'); if (!box) return; box.innerHTML = '<div class="card spin">กำลังตรวจสอบห้องค้างตรวจ...</div>';
@@ -244,11 +260,11 @@
       <div><label>ถึง</label><input type="date" id="t" value="${st.to}" max="${todayISO()}"></div></div>
       <div class="tb"><div><label>เตือนเมื่อคะแนนต่ำกว่า</label><select id="th">${[50, 60, 70, 80].map(v => `<option ${v === st.thr ? 'selected' : ''}>${v}</option>`).join('')}</select></div>
       <div><label>ซ้ำอย่างน้อย (วัน)</label><select id="rp">${[2, 3, 4, 5].map(v => `<option ${v === st.rep ? 'selected' : ''}>${v}</option>`).join('')}</select></div></div></div>
-      <div id="od"></div><div id="ins" class="spin">กำลังโหลด...</div>`;
+      <div id="od"></div><div id="wow"></div><div id="ins" class="spin">กำลังโหลด...</div>`;
     const reload = () => { st.from = document.getElementById('f').value; st.to = document.getElementById('t').value; st.thr = Number(document.getElementById('th').value); st.rep = Number(document.getElementById('rp').value); insights(); };
     ['f', 't', 'th', 'rp'].forEach(i => document.getElementById(i).onchange = reload);
     if (!st.from || !st.to || st.from > st.to) { document.getElementById('ins').innerHTML = '<div class="note">ช่วงวันที่ไม่ถูกต้อง</div>'; return; }
-    overdueCard(st.from, st.to);
+    overdueCard(st.from, st.to); changeCard(st.to);
     try {
       const data = await api('adminList', { kind: st.kind, from: st.from, to: st.to });
       const ins = data.inspections;
