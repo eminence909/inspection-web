@@ -220,6 +220,10 @@ var ACTIONS = {
     if (!ex) throw new Error('ยังไม่มีผลตรวจให้แก้ไข');
     if (ex.submittedDate !== today_()) throw new Error('แก้ไขได้เฉพาะภายในวันที่กดส่ง');
     var sc = cleanScores_(p.kind, p.scores);
+    var before = {}; try { before = JSON.parse(ex.scores || '{}'); } catch (e) {}
+    Object.keys(sc.scores).forEach(function (id) { // บันทึกประวัติเมื่อผู้ตรวจแก้คะแนนของตัวเองในวันเดียวกัน
+      if (String(before[id]) !== String(sc.scores[id])) put_('EditLog', { time: now_(), by: 'ผู้ตรวจ', key: k, itemId: id, oldValue: before[id], newValue: sc.scores[id] });
+    });
     ex.scores = JSON.stringify(sc.scores); ex.total = sc.total; ex.updatedAt = now_();
     put_('Inspections', ex, ex._row);
     return { total: sc.total };
@@ -316,7 +320,7 @@ var ACTIONS = {
   },
   adminHistory: function (p) {
     checkAdmin_(p);
-    return rows_('EditLog').filter(function (r) { return !p.key || r.key === p.key; }).reverse().slice(0, 300);
+    return rows_('EditLog').filter(function (r) { return !p.key || r.key === p.key; }).reverse().slice(0, 500);
   },
   rosterSetNames: function (p) { checkRoster_(p); replaceList_('Names', 'name', p.list); return true; },
   adminSetNames: function (p) { checkAdmin_(p); replaceList_('Names', 'name', p.list); return true; },

@@ -44,13 +44,13 @@
   // ---------- shell ----------
   function shell() {
     document.getElementById('logout').hidden = false;
-    const tabs = [['daily', 'ผลรายวัน / แก้ไข'], ['weekly', 'สรุปรายสัปดาห์'], ['monthly', 'สรุปรายเดือน'], ['insights', 'ภาพรวม / แจ้งเตือน'], ['roster', 'เวร / สถานะการส่ง'], ['settings', 'ตั้งค่า']];
+    const tabs = [['daily', 'ผลรายวัน / แก้ไข'], ['weekly', 'สรุปรายสัปดาห์'], ['monthly', 'สรุปรายเดือน'], ['insights', 'ภาพรวม / แจ้งเตือน'], ['roster', 'เวร / สถานะการส่ง'], ['history', 'ประวัติแก้ไขคะแนน'], ['settings', 'ตั้งค่า']];
     $app.innerHTML = `<div class="tabs" id="tabs">${tabs.map(t => `<button data-t="${t[0]}" class="${st.tab === t[0] ? 'on' : ''}">${t[1]}</button>`).join('')}</div>
       <div class="seg" style="margin-bottom:14px"><button class="tile ${st.kind === 'zone' ? 'sel' : ''}" data-k="zone">เขตพื้นที่</button><button class="tile ${st.kind === 'classroom' ? 'sel' : ''}" data-k="classroom">ห้องเรียน</button></div>
       <div id="pane"></div>`;
     document.querySelectorAll('#tabs button').forEach(b => b.onclick = () => { st.tab = b.dataset.t; shell(); });
     document.querySelectorAll('[data-k]').forEach(b => b.onclick = () => { st.kind = b.dataset.k; st.week = null; shell(); });
-    ({ daily, weekly, monthly, insights, roster, settings }[st.tab])();
+    ({ daily, weekly, monthly, insights, roster, history, settings }[st.tab])();
   }
   const pane = () => document.getElementById('pane');
 
@@ -333,6 +333,22 @@
   function statsCard(date) {
     const box = document.createElement('div'); document.getElementById('pane').appendChild(box);
     window.ROSTER.mountStats(box, { api, date, toast });
+  }
+
+  // ---------- ประวัติแก้ไขคะแนน ----------
+  async function history() {
+    st.hq = st.hq || '';
+    pane().innerHTML = `<div class="card"><h2>ประวัติแก้ไขคะแนน</h2><div class="muted">แสดงการแก้คะแนนล่าสุด 500 รายการ (ทั้งที่แอดมินแก้และที่ผู้ตรวจแก้เองภายในวันที่ส่ง) ของ${kn()}</div>
+      <div class="tb" style="margin-top:8px"><div><label>ค้นหาห้อง/วันที่/ผู้แก้</label><input type="text" id="hq" value="${esc(st.hq)}" placeholder="เช่น 3/5 หรือ 2026-11-09 หรือ admin"></div><button class="btn sec" id="hr">รีเฟรช</button></div></div><div id="hv" class="spin">กำลังโหลด...</div>`;
+    const def = CR[st.kind], by = {}; def.categories.forEach(c => c.items.forEach(i => by[i.id] = i));
+    const q = document.getElementById('hq'); let rows = [];
+    const draw = () => {
+      const f = q.value.trim().toLowerCase(); st.hq = q.value;
+      const list = rows.filter(r => r.key.split('|')[0] === st.kind && (!f || (r.key.split('|')[2] + '/' + r.key.split('|')[3] + ' ' + r.key + ' ' + r.by + ' ' + r.time).toLowerCase().indexOf(f) >= 0));
+      document.getElementById('hv').innerHTML = list.length ? `<div class="card"><div class="scroll"><table class="dt"><tr><th>เวลา</th><th>ผู้แก้</th><th>ห้อง</th><th>วันที่ตรวจ</th><th>หัวข้อ</th><th>เดิม → ใหม่</th></tr>${list.map(r => { const p = r.key.split('|'), it = by[r.itemId], d = Number(r.newValue) - Number(r.oldValue); return `<tr><td class="l">${esc(String(r.time).replace('T', ' ').slice(0, 16))}</td><td>${esc(r.by === 'admin' ? 'แอดมิน' : r.by)}</td><td><b>${esc(p[2] + '/' + p[3])}</b></td><td>${esc(p[1])}</td><td class="l">${esc(it ? it.id + ' ' + it.title : r.itemId)}</td><td><b style="color:${d < 0 ? 'var(--r)' : 'var(--ok)'}">${esc(r.oldValue)} → ${esc(r.newValue)}</b></td></tr>`; }).join('')}</table></div></div>` : '<div class="card"><div class="note">ไม่พบประวัติการแก้ไข</div></div>';
+    };
+    const load = () => api('adminHistory', {}).then(r => { rows = r; draw(); }).catch(e => { document.getElementById('hv').innerHTML = '<div class="note bad">' + esc(e.message) + '</div>'; });
+    q.oninput = draw; document.getElementById('hr').onclick = load; load();
   }
 
   // ---------- ตั้งค่า ----------
