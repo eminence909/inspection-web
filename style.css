@@ -358,3 +358,29 @@ details summary{color:var(--ink)}
 .dst h3{color:var(--ink)}
 .btn.warn{background:rgba(255,255,255,.1);color:var(--ink);border:1px solid rgba(255,255,255,.28)}
 .btn.warn:hover{background:rgba(255,255,255,.18)}
+
+/* ===== แถบเมนูหลักของผู้ตรวจ: มือถือ = แถบบน / จอใหญ่ = เมนูซ้าย ===== */
+.stick{position:sticky;top:0;z-index:5}
+.stick .top{position:relative}
+#nav{display:flex;gap:6px;overflow-x:auto;padding:8px 14px 10px;background:rgba(10,10,11,.86);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--hair);scrollbar-width:none;-webkit-overflow-scrolling:touch}
+#nav::-webkit-scrollbar{display:none}
+#nav[hidden]{display:none}
+#nav button{flex:0 0 auto;font:inherit;font-size:14px;font-weight:600;color:var(--mut);background:transparent;border:1px solid transparent;border-radius:999px;padding:7px 15px;cursor:pointer;white-space:nowrap;transition:.2s}
+#nav button:hover{color:var(--ink)}
+#nav button.on{background:var(--ac);color:var(--ac-ink);border-color:var(--ac)}
+@media(min-width:900px){
+  #nav{position:fixed;left:0;top:var(--toph,66px);width:210px;bottom:0;flex-direction:column;gap:2px;overflow:visible;padding:22px 14px;border-bottom:0;border-right:1px solid var(--hair);background:rgba(10,10,11,.6)}
+  #nav::before{content:"เมนู";font-size:11px;letter-spacing:.22em;color:var(--mut);padding:0 14px 10px;text-transform:uppercase}
+  #nav button{text-align:left;border-radius:8px;padding:11px 14px;font-size:15px;border:0;border-left:2px solid transparent;color:var(--mut)}
+  #nav button.on{background:rgba(255,255,255,.08);color:#fff;border-left-color:#fff}
+  body.hasnav main{margin-left:210px;max-width:none;padding-left:max(24px,calc((100vw - 210px - 720px)/2));padding-right:max(24px,calc((100vw - 210px - 720px)/2))}
+  body.hasnav .bar{left:210px}
+}
+/* สไลด์เข้าเมื่อสลับแท็บด้วยการปัดหรือกด */
+@keyframes sInL{from{opacity:0;transform:translateX(28px)}to{opacity:1;transform:none}}
+@keyframes sInR{from{opacity:0;transform:translateX(-28px)}to{opacity:1;transform:none}}
+#app[data-dir=l]>*{animation:sInL .3s ease both}
+#app[data-dir=r]>*{animation:sInR .3s ease both}
+.hero{min-height:230px}
+
+[hidden]{display:none!important}

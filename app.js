@@ -52,11 +52,46 @@
   function bindQ() { const b = document.getElementById('qs'); if (b) b.onclick = () => flushQueue().then(n => { if (!n) toast('ยังส่งไม่ได้ ลองใหม่เมื่อมีสัญญาณ'); }); const x = document.getElementById('qx'); if (x) x.onclick = exportQueue; netPill(); }
   function loading() { $app.innerHTML = '<div class="spin">กำลังโหลด...</div>'; }
   function fail(e) { toast(e.message || 'เกิดข้อผิดพลาด'); console.error(e); }
-  function header(title, sub, back) {
+  // ---------- แถบเมนูหลัก (บนมือถือ = แถบบน / จอใหญ่ = เมนูซ้าย) ----------
+  const TABS = [['home', 'หน้าหลัก'], ['zone', 'เขตพื้นที่'], ['classroom', 'ห้องเรียน'], ['roster', 'ดูเวร'], ['results', 'ผลประกาศ'], ['more', 'เพิ่มเติม']];
+  const SWIPE = ['home', 'zone', 'classroom', 'roster', 'more'];
+  let curTab = 'home', navHidden = false;
+  function go(t) {
+    if (t === 'results') { location.href = 'results.html'; return; }
+    if (t === 'home') home();
+    else if (t === 'zone' || t === 'classroom') { S.kind = t; pickLevel(); }
+    else if (t === 'roster') viewRoster();
+    else if (t === 'more') viewMore();
+  }
+  function setTab(t) { curTab = t; document.querySelectorAll('#nav button').forEach(b => { const on = b.dataset.t === t; b.classList.toggle('on', on); if (on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); }); const a = document.querySelector('#nav button.on'); if (a && a.scrollIntoView) { const n = document.getElementById('nav'); if (n && n.scrollWidth > n.clientWidth) n.scrollLeft = Math.max(0, a.offsetLeft - 24); } }
+  function navOn(show) { navHidden = !show; const n = document.getElementById('nav'); if (n) n.hidden = !show; document.body.classList.toggle('hasnav', show); }
+  (function buildNav() {
+    const n = document.getElementById('nav'); if (!n) return;
+    n.innerHTML = TABS.map(t => `<button type="button" data-t="${t[0]}">${t[1]}</button>`).join('');
+    n.querySelectorAll('button').forEach(b => b.onclick = () => { if (b.dataset.t === curTab && b.dataset.t !== 'results') { go(curTab); return; } slide(b.dataset.t); go(b.dataset.t); });
+    // ปัดซ้าย-ขวาเพื่อสลับแท็บหลัก (ปิดตอนกำลังกรอกข้อมูล/ให้คะแนน)
+    let x0 = 0, y0 = 0, tg = null, t0 = 0;
+    document.addEventListener('touchstart', e => { const t = e.touches[0]; x0 = t.clientX; y0 = t.clientY; tg = e.target; t0 = Date.now(); }, { passive: true });
+    document.addEventListener('touchend', e => {
+      if (navHidden || !tg || Date.now() - t0 > 700) return;
+      const t = e.changedTouches[0], dx = t.clientX - x0, dy = t.clientY - y0;
+      if (Math.abs(dx) < 80 || Math.abs(dx) < Math.abs(dy) * 1.8) return;
+      if (tg.closest && tg.closest('input,textarea,select,table,.scroll,.hist,.trend,.chips,#nav')) return;
+      const ae = document.activeElement; if (ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)) return;
+      if (document.querySelector('.bar')) return;
+      const i = SWIPE.indexOf(curTab), j = i + (dx < 0 ? 1 : -1); if (i < 0 || j < 0 || j >= SWIPE.length) return;
+      slide(SWIPE[j], dx < 0); go(SWIPE[j]);
+    }, { passive: true });
+  })();
+  function slide(t, fwd) { const i = SWIPE.indexOf(curTab), j = SWIPE.indexOf(t); const f = fwd == null ? j > i : fwd; $app.dataset.dir = f ? 'l' : 'r'; setTimeout(() => { delete $app.dataset.dir; }, 450); }
+  function setTopH() { const h = document.querySelector('.stick .top'); if (h) document.documentElement.style.setProperty('--toph', h.getBoundingClientRect().height + 'px'); }
+  window.addEventListener('resize', setTopH); document.addEventListener('click', e => { if (e.target.id === 'fsz') setTimeout(setTopH, 50); });
+  function header(title, sub, back, noNav) {
+    navOn(!noNav);
     document.getElementById('hTitle').textContent = title;
     document.getElementById('hSub').textContent = sub || '';
     $back.hidden = !back; $back.onclick = back || null;
-    window.scrollTo(0, 0);
+    window.scrollTo(0, 0); setTopH();
   }
   function bar(html) { let b = document.querySelector('.bar'); if (b) b.remove(); if (html) { b = document.createElement('div'); b.className = 'bar'; b.innerHTML = '<div class="in">' + html + '</div>'; document.body.appendChild(b); } return b; }
   const draftKey = () => ['draft', S.kind, S.date, S.level, S.room].join('|');
@@ -66,7 +101,7 @@
 
   // ---------- 1 หน้าแรก ----------
   async function home() {
-    bar(); header('ระบบตรวจห้องเรียนและเขตพื้นที่', '');
+    bar(); header('ระบบตรวจห้องเรียนและเขตพื้นที่', ''); setTab('home');
     const today0 = () => new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10);
     if (!S.init) {
       let cached = null; try { cached = JSON.parse(localStorage.getItem('init') || 'null'); } catch (e) {}
@@ -93,22 +128,8 @@
         <button class="mcard" data-k="zone"><span class="go">${IC.arrow}</span><span class="ic">${IC.leaf}</span><span><b>ตรวจเขตพื้นที่</b><small>Sripisai Clean Zone</small></span></button>
         <button class="mcard" data-k="classroom"><span class="go">${IC.arrow}</span><span class="ic">${IC.school}</span><span><b>ตรวจห้องเรียน</b><small>The SMART Classroom</small></span></button>
       </div>
-      <button class="rowbtn" id="rosterBtn"><span class="ic">${IC.list}</span><span class="t">ดูเวรประจำวัน</span>${IC.arrow.replace('<svg','<svg width="18" height="18" style="stroke:currentColor;fill:none;stroke-width:2"')}</button>
-      <button class="rowbtn" id="resBtn" style="margin-top:10px"><span class="ic">${IC.list}</span><span class="t">ดูผลประกาศ<small class="muted" style="display:block;font-weight:400">อันดับและเหรียญของแต่ละห้อง</small></span>${IC.arrow.replace('<svg','<svg width="18" height="18" style="stroke:currentColor;fill:none;stroke-width:2"')}</button>
-      <button class="rowbtn" id="guideBtn" style="margin-top:10px"><span class="ic">${IC.help}</span><span class="t">วิธีการใช้งานเว็บนี้</span>${IC.arrow.replace('<svg','<svg width="18" height="18" style="stroke:currentColor;fill:none;stroke-width:2"')}</button>
-      <button class="rowbtn" id="offBtn" style="margin-top:10px"><span class="ic">${IC.list}</span><span class="t">เตรียมใช้งานออฟไลน์<small class="muted" style="display:block;font-weight:400">โหลดข้อมูลวันนี้ไว้ในเครื่อง ใช้ตอนไม่มีสัญญาณ</small></span>${IC.arrow.replace('<svg','<svg width="18" height="18" style="stroke:currentColor;fill:none;stroke-width:2"')}</button>
-      <button class="rowbtn" id="lineBtn" style="margin-top:10px"><span class="ic">${IC.help}</span><span class="t">ติดต่อแอดมิน / แจ้งปัญหา (ไลน์)</span>${IC.arrow.replace('<svg','<svg width="18" height="18" style="stroke:currentColor;fill:none;stroke-width:2"')}</button>
-      <div style="text-align:center;margin-top:16px"><a href="roster.html" class="muted">สำหรับผู้จัดเวร</a></div>`;
+`;
     bindQ();
-    document.getElementById('rosterBtn').onclick = viewRoster;
-    document.getElementById('guideBtn').onclick = viewGuide;
-    document.getElementById('resBtn').onclick = () => { location.href = 'results.html'; };
-    document.getElementById('offBtn').onclick = prepareOffline;
-    document.getElementById('lineBtn').onclick = () => {
-      const u = (S.init && S.init.lineUrl) || window.LINE_URL || '';
-      if (/^https?:\/\//.test(u)) window.open(u, '_blank', 'noopener');
-      else toast('แอดมินยังไม่ได้ตั้งลิงก์ไลน์ (แอดมิน: ตั้งค่า > ลิงก์ไลน์แอดมิน)');
-    };
     const loadStats = async () => {
       const d = S.date; let r = null, old = false;
       try { const x = await cached('ds|' + d, 'dayStats', { date: d }); r = x.d; old = x.old; } catch (e) { r = null; }
@@ -198,8 +219,27 @@
     ['ไม่มีสัญญาณอินเทอร์เน็ต', 'ยังตรวจและกดส่งได้ ผลจะเก็บในเครื่องแล้วขึ้น "รอส่ง" เมื่อกลับมามีสัญญาณระบบจะส่งให้เอง อย่าล้างข้อมูลเบราว์เซอร์ก่อนส่งเสร็จ'],
     ['ตรวจครบแล้ว: บันทึกใบ เซ็นชื่อ และอัปลงไลน์', 'เมื่อตรวจครบทุกห้องของชั้นนั้น กด "ดาวน์โหลดใบประเมินเป็นรูปภาพ" เพื่อบันทึกใบ จากนั้นนำใบไปเซ็นชื่อให้ครบ แล้วนำใบที่เซ็นแล้วไปอัปโหลดลงอัลบั้มในไลน์กลุ่ม']
   ];
+  // ---------- เพิ่มเติม ----------
+  function viewMore() {
+    bar(); header('เพิ่มเติม', 'คู่มือ ออฟไลน์ และติดต่อแอดมิน', home); setTab('more');
+    const row = (id, ic, t, sub) => `<button class="rowbtn" id="${id}" style="margin-bottom:10px"><span class="ic">${ic}</span><span class="t">${t}${sub ? '<small class="muted" style="display:block;font-weight:400">' + sub + '</small>' : ''}</span>${IC.arrow.replace('<svg','<svg width="18" height="18" style="stroke:currentColor;fill:none;stroke-width:2"')}</button>`;
+    $app.innerHTML = qBanner() +
+      row('guideBtn', IC.help, 'วิธีการใช้งานเว็บนี้') +
+      row('offBtn', IC.list, 'เตรียมใช้งานออฟไลน์', 'โหลดข้อมูลวันนี้ไว้ในเครื่อง ใช้ตอนไม่มีสัญญาณ') +
+      row('lineBtn', IC.help, 'ติดต่อแอดมิน / แจ้งปัญหา (ไลน์)') +
+      '<div style="text-align:center;margin-top:16px"><a href="roster.html" class="muted">สำหรับผู้จัดเวร</a></div>';
+    bindQ();
+    document.getElementById('guideBtn').onclick = viewGuide;
+    document.getElementById('offBtn').onclick = prepareOffline;
+    document.getElementById('lineBtn').onclick = () => {
+      const u = (S.init && S.init.lineUrl) || window.LINE_URL || '';
+      if (/^https?:\/\//.test(u)) window.open(u, '_blank', 'noopener');
+      else toast('แอดมินยังไม่ได้ตั้งลิงก์ไลน์ (แอดมิน: ตั้งค่า > ลิงก์ไลน์แอดมิน)');
+    };
+  }
+
   function viewGuide() {
-    bar(); header('วิธีการใช้งาน', 'สำหรับผู้ตรวจ', home);
+    bar(); header('วิธีการใช้งาน', 'สำหรับผู้ตรวจ', viewMore); setTab('more');
     $app.innerHTML = GUIDE.map((g, i) => `<div class="card" style="display:flex;gap:12px"><div class="gno">${i + 1}</div><div><h3 style="margin-bottom:4px">${esc(g[0])}</h3><div>${esc(g[1])}</div></div></div>`).join('') +
       `<div class="note" style="margin-top:4px"><b>อย่าลืม:</b> หลังตรวจเสร็จต้องบันทึกใบ นำไปเซ็นชื่อ และอัปลงอัลบั้มในไลน์กลุ่มทุกครั้ง</div>`;
   }
@@ -212,7 +252,7 @@
     catch (e) { const c = lsGet(key); if (e.net && c) return { d: c, old: true }; throw e; }
   }
   async function viewRoster() {
-    bar(); header('ดูเวร', thDate(S.date), home); loading();
+    bar(); header('ดูเวร', thDate(S.date), home); setTab('roster'); loading();
     try {
       const [r1, r2] = await Promise.all([cached('ro|' + S.date, 'rosterGet', { date: S.date }), cached('rdates', 'rosterDates', {}).catch(() => ({ d: [], old: false }))]);
       const es = r1.d, dates = r2.d || [], old = r1.old || r2.old;
@@ -233,7 +273,7 @@
 
   // ---------- 2 เลือกระดับชั้น ----------
   function pickLevel() {
-    bar(); header(kindName(), thDate(S.date), home);
+    bar(); header(kindName(), thDate(S.date), home); setTab(S.kind);
     $app.innerHTML = '<div class="card"><h2>เลือกระดับชั้น</h2><div class="grid" id="lv"></div></div>';
     const g = document.getElementById('lv');
     CR.LEVELS.forEach(l => { const b = document.createElement('button'); b.className = 'tile'; b.textContent = 'ม.' + l; b.onclick = () => { S.level = String(l); enterLevel(); }; g.appendChild(b); });
@@ -252,7 +292,7 @@
   // ---------- 3 ผู้ตรวจ + อาคารเปิด/ปิด ----------
   let tmp = null;
   function teamStep() {
-    bar(); header(`ม.${S.level} · ผู้ตรวจ`, kindName() + ' · ' + thDate(S.date), S.team ? rooms : pickLevel);
+    bar(); header(`ม.${S.level} · ผู้ตรวจ`, kindName() + ' · ' + thDate(S.date), S.team ? rooms : pickLevel, true);
     tmp = { names: (S.team ? S.team.names.slice() : (S.rosterNames || []).slice(0, 3)), open: S.team ? S.team.buildingOpen : '', un: {} };
     S.status.unavail.forEach(u => tmp.un[u.room] = { reason: u.reason, text: u.text });
     draw();
@@ -407,7 +447,7 @@
   // ---------- 5 กรอกคะแนน ----------
   function form() {
     const def = CR[S.kind];
-    header(`ม.${S.level}/${S.room}`, kindName() + (S.editing ? ' · แก้ไข' : ''), () => { rooms(); });
+    header(`ม.${S.level}/${S.room}`, kindName() + (S.editing ? ' · แก้ไข' : ''), () => { rooms(); }, true);
     let h = '';
     def.categories.forEach(c => {
       h += `<div class="cat" data-c="${c.no}" role="button" tabindex="0"><span>${c.no}. ${esc(c.title)}</span><span><span data-sub="${c.no}"></span><svg class="chev" viewBox="0 0 24 24" width="16" height="16"><path d="M6 9l6 6 6-6"/></svg></span></div><div class="cbody" data-cb="${c.no}">`;
@@ -460,7 +500,7 @@
   // ---------- 6 ตรวจสอบก่อนส่ง ----------
   function review(viewOnly) {
     const def = CR[S.kind], t = K.dailyTotals(S.kind, S.scores);
-    header(`ม.${S.level}/${S.room} · ตรวจสอบ`, kindName(), viewOnly ? () => rooms() : form);
+    header(`ม.${S.level}/${S.room} · ตรวจสอบ`, kindName(), viewOnly ? () => rooms() : form, true);
     let h = `<div class="card"><div class="muted">${thDate(S.date)} · ผู้ตรวจ ${esc(S.team.names.join(', '))}</div><table class="rv">`;
     def.categories.forEach((c, ci) => {
       c.items.forEach(it => { h += `<tr><td>${it.id} ${esc(it.title)}</td><td>${S.scores[it.id]}</td></tr>`; });
