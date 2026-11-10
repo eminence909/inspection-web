@@ -68,7 +68,7 @@
   (function buildNav() {
     const n = document.getElementById('nav'); if (!n) return;
     n.innerHTML = TABS.map(t => `<button type="button" data-t="${t[0]}">${t[1]}</button>`).join('');
-    n.querySelectorAll('button').forEach(b => b.onclick = () => { if (b.dataset.t === curTab && b.dataset.t !== 'results') { go(curTab); return; } slide(b.dataset.t); go(b.dataset.t); });
+    n.querySelectorAll('button').forEach(b => b.onclick = () => { if (Date.now() - lastNav < 200) return; lastNav = Date.now(); if (b.dataset.t === curTab && b.dataset.t !== 'results') { go(curTab); return; } slide(b.dataset.t); go(b.dataset.t); });
     // ปัดซ้าย-ขวาเพื่อสลับแท็บหลัก (ปิดตอนกำลังกรอกข้อมูล/ให้คะแนน)
     let x0 = 0, y0 = 0, tg = null, t0 = 0;
     document.addEventListener('touchstart', e => { const t = e.touches[0]; x0 = t.clientX; y0 = t.clientY; tg = e.target; t0 = Date.now(); }, { passive: true });
@@ -78,7 +78,7 @@
       if (Math.abs(dx) < 80 || Math.abs(dx) < Math.abs(dy) * 1.8) return;
       if (tg.closest && tg.closest('input,textarea,select,table,.scroll,.hist,.trend,.chips,#nav')) return;
       const ae = document.activeElement; if (ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)) return;
-      if (document.querySelector('.bar')) return;
+      if (document.querySelector('.bar') || Date.now() - lastNav < 300) return; lastNav = Date.now();
       const i = SWIPE.indexOf(curTab), j = i + (dx < 0 ? 1 : -1); if (i < 0 || j < 0 || j >= SWIPE.length) return;
       slide(SWIPE[j], dx < 0); go(SWIPE[j]);
     }, { passive: true });
@@ -86,8 +86,9 @@
   function slide(t, fwd) { const i = SWIPE.indexOf(curTab), j = SWIPE.indexOf(t); const f = fwd == null ? j > i : fwd; $app.dataset.dir = f ? 'l' : 'r'; setTimeout(() => { delete $app.dataset.dir; }, 450); }
   function setTopH() { const h = document.querySelector('.stick .top'); if (h) document.documentElement.style.setProperty('--toph', h.getBoundingClientRect().height + 'px'); }
   window.addEventListener('resize', setTopH); document.addEventListener('click', e => { if (e.target.id === 'fsz') setTimeout(setTopH, 50); });
+  let NAV = 0, lastNav = 0; // NAV เพิ่มทุกครั้งที่เปิดหน้าใหม่ ใช้กันหน้าเก่าที่โหลดช้าเขียนทับหน้าใหม่
   function header(title, sub, back, noNav) {
-    navOn(!noNav);
+    NAV++; navOn(!noNav);
     document.getElementById('hTitle').textContent = title;
     document.getElementById('hSub').textContent = sub || '';
     $back.hidden = !back; $back.onclick = back || null;
@@ -101,7 +102,7 @@
 
   // ---------- 1 หน้าแรก ----------
   async function home() {
-    bar(); header('ระบบตรวจห้องเรียนและเขตพื้นที่', ''); setTab('home');
+    bar(); header('ระบบตรวจห้องเรียนและเขตพื้นที่', ''); setTab('home'); const my = NAV;
     const today0 = () => new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10);
     if (!S.init) {
       let cached = null; try { cached = JSON.parse(localStorage.getItem('init') || 'null'); } catch (e) {}
@@ -110,9 +111,10 @@
         api('init').then(r => { S.init = r; try { localStorage.setItem('init', JSON.stringify(r)); } catch (e) {} }).catch(() => {});
       } else {
       loading();
-      try { S.init = await api('init'); try { localStorage.setItem('init', JSON.stringify(S.init)); } catch (e) {} } catch (e) { $app.innerHTML = '<div class="card">เชื่อมต่อระบบไม่ได้ ตรวจสอบ config.js<br><span class="muted">' + esc(e.message) + '</span></div>'; return; }
+      try { S.init = await api('init'); try { localStorage.setItem('init', JSON.stringify(S.init)); } catch (e) {} } catch (e) { if (my !== NAV) return; $app.innerHTML = '<div class="card">เชื่อมต่อระบบไม่ได้ ตรวจสอบ config.js<br><span class="muted">' + esc(e.message) + '</span></div>'; return; }
       }
     }
+    if (my !== NAV) return;
     S.date = S.date || S.init.today;
     $app.innerHTML = qBanner() + `
       <section class="hero"><div class="bigword">CLEAN</div>
@@ -252,9 +254,10 @@
     catch (e) { const c = lsGet(key); if (e.net && c) return { d: c, old: true }; throw e; }
   }
   async function viewRoster() {
-    bar(); header('ดูเวร', thDate(S.date), home); setTab('roster'); loading();
+    bar(); header('ดูเวร', thDate(S.date), home); setTab('roster'); loading(); const my = NAV;
     try {
       const [r1, r2] = await Promise.all([cached('ro|' + S.date, 'rosterGet', { date: S.date }), cached('rdates', 'rosterDates', {}).catch(() => ({ d: [], old: false }))]);
+      if (my !== NAV) return;
       const es = r1.d, dates = r2.d || [], old = r1.old || r2.old;
       $app.innerHTML = `${old ? '<div class="note" style="margin-bottom:10px">ออฟไลน์: แสดงข้อมูลที่จำไว้ล่าสุดในเครื่อง</div>' : ''}
         <div class="card"><h2>เลือกวัน</h2><div id="rh"></div>
@@ -268,7 +271,7 @@
       const show = () => { rl.innerHTML = window.ROSTER.viewHtml(es, rq.value); };
       rq.oninput = show; show();
       document.getElementById('rd').onchange = e => { if (e.target.value && e.target.value <= S.init.today) { S.date = e.target.value; viewRoster(); } };
-    } catch (e) { fail(e); home(); }
+    } catch (e) { if (my !== NAV) return; fail(e); home(); }
   }
 
   // ---------- 2 เลือกระดับชั้น ----------
@@ -279,14 +282,15 @@
     CR.LEVELS.forEach(l => { const b = document.createElement('button'); b.className = 'tile'; b.textContent = 'ม.' + l; b.onclick = () => { S.level = String(l); enterLevel(); }; g.appendChild(b); });
   }
   async function enterLevel() {
-    loading();
+    loading(); const my = NAV;
     try {
       const lk = ['lv', S.kind, S.date, S.level].join('|'); let ld;
       try { ld = await api('levelData', { kind: S.kind, date: S.date, level: S.level }); try { localStorage.setItem(lk, JSON.stringify(ld)); } catch (e) {} }
       catch (e) { let c = null; try { c = JSON.parse(localStorage.getItem(lk) || 'null'); } catch (x) {} if (e.net && c) { ld = c; toast('ออฟไลน์: ใช้ข้อมูลที่จำไว้ล่าสุด'); } else throw e; }
+      if (my !== NAV) return;
       S.status = ld.status; S.team = S.status.team; S.rosterNames = ld.rosterNames || [];
       if (!S.team) return teamStep(); else return rooms();
-    } catch (e) { fail(e); pickLevel(); }
+    } catch (e) { if (my !== NAV) return; fail(e); pickLevel(); }
   }
 
   // ---------- 3 ผู้ตรวจ + อาคารเปิด/ปิด ----------
