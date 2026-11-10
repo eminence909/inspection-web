@@ -242,3 +242,7 @@ input[type=date]::-webkit-date-and-time-value,input[type=month]::-webkit-date-an
 .pchip{font:inherit;font-size:.85em;border:1px solid var(--line);background:rgba(0,0,0,.25);color:var(--ink);border-radius:999px;padding:4px 10px;cursor:pointer}
 .ur{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-top:1px dashed var(--line)}.ur span{color:var(--mut);text-align:right}
 @media(max-width:520px){.net.on{font-size:0;padding:7px}.net.on::before{margin:0}.net{padding:4px 8px}}
+
+.odr{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:8px 0;background:rgba(0,0,0,.18)}.odr.soft{opacity:.85}
+.odh{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px}
+.odi{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-top:1px dashed var(--line)}.odi .muted{text-align:right;font-size:.9em}

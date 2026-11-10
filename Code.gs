@@ -251,6 +251,12 @@ var ACTIONS = {
     });
     return true;
   },
+  // เวรในช่วงวันที่ (ผู้จัดเวรหรือแอดมินเรียกได้) ใช้ทำสถิติเวรรายคน
+  rosterRange: function (p) {
+    checkRoster_(p);
+    return rows_('Roster').filter(function (r) { return r.date >= p.from && r.date <= p.to; })
+      .map(function (r) { return { date: r.date, section: r.section, grp: r.grp, names: JSON.parse(r.names || '[]') }; });
+  },
   adminRosterRange: function (p) {
     checkAdmin_(p);
     return rows_('Roster').filter(function (r) { return r.date >= p.from && r.date <= p.to; })

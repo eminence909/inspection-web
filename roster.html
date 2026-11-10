@@ -10,8 +10,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Thai:wght@600;700&family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20261110d">
-<script src="font.js?v=20261110d"></script>
+<link rel="stylesheet" href="style.css?v=20261110e">
+<script src="font.js?v=20261110e"></script>
 </head>
 <body>
 <header class="top">
@@ -20,12 +20,12 @@
 </header>
 <main id="app"></main>
 <div id="toast" role="status"></div>
-<script src="config.js?v=20261110d"></script>
-<script src="criteria.js?v=20261110d"></script>
-<script src="calc.js?v=20261110d"></script>
-<script src="summary.js?v=20261110d"></script>
-<script src="roster.js?v=20261110d"></script>
-<script src="lazy.js?v=20261110d"></script>
+<script src="config.js?v=20261110e"></script>
+<script src="criteria.js?v=20261110e"></script>
+<script src="calc.js?v=20261110e"></script>
+<script src="summary.js?v=20261110e"></script>
+<script src="roster.js?v=20261110e"></script>
+<script src="lazy.js?v=20261110e"></script>
 <script>
 (function () {
   const $app = document.getElementById('app');
@@ -43,9 +43,10 @@
     document.getElementById('ok').onclick = go; document.getElementById('p').onkeydown = e => { if (e.key === 'Enter') go(); };
   }
   function start() {
-    $app.innerHTML = '<div class="card"><div class="tb"><div><label>ดาวน์โหลดใบเวร (วันที่ที่เลือกในช่องด้านล่าง)</label></div><button class="btn warn" id="xpdf" style="margin:0;flex:0 0 110px">PDF ใบเวร</button><button class="btn warn" id="xjpg" style="margin:0;flex:0 0 110px">รูปใบเวร</button></div></div><div id="ed"></div>';
+    $app.innerHTML = '<div class="card"><div class="tb"><div><label>ดาวน์โหลดใบเวร (วันที่ที่เลือกในช่องด้านล่าง)</label></div><button class="btn warn" id="xpdf" style="margin:0;flex:0 0 110px">PDF ใบเวร</button><button class="btn warn" id="xjpg" style="margin:0;flex:0 0 110px">รูปใบเวร</button></div></div><div id="ed"></div><div id="st"></div>';
     let cur = today(); const dl = fn => { toast('กำลังสร้างไฟล์...'); window.loadPdfStack().then(() => window.PDFX[fn]({ date: cur, api })).then(() => toast('เสร็จแล้ว')).catch(e => toast(e.message)); };
     document.getElementById('xpdf').onclick = () => dl('roster'); document.getElementById('xjpg').onclick = () => dl('rosterImage');
+    window.ROSTER.mountStats(document.getElementById('st'), { api, date: cur, toast });
     window.ROSTER.mountEditor(document.getElementById('ed'), { api, date: cur, toast, onChange: d => { cur = d; } });
   }
   if (PIN) api('rosterLogin').then(start).catch(login); else login();

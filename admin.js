@@ -182,16 +182,43 @@
   // ---------- เวร / สถานะการส่งใบประเมิน ----------
 
   // ---------- ภาพรวม / แจ้งเตือนคะแนนต่ำซ้ำ / ส่งออก CSV ----------
+  // ห้องที่ยังไม่ได้ตรวจ/ส่งไม่ครบ ในช่วงวันที่ (วันที่ไม่มีการตรวจเลยทั้งโรงเรียนถือว่าเป็นวันหยุด ไม่นับค้าง)
+  async function overdueCard(from, to) {
+    const box = document.getElementById('od'); if (!box) return; box.innerHTML = '<div class="card spin">กำลังตรวจสอบห้องค้างตรวจ...</div>';
+    try {
+      const [cl, zn, ro] = await Promise.all([api('adminList', { kind: 'classroom', from, to }), api('adminList', { kind: 'zone', from, to }), api('adminRosterRange', { from, to })]);
+      const today = todayISO(), hourBkk = new Date(Date.now() + 7 * 3600e3).getUTCHours(), late = hourBkk >= 12;
+      const names = {}; ro.forEach(r => names[r.date + '|' + r.section + '|' + r.grp] = r.names);
+      const cnt = (data, d, l) => data.inspections.filter(x => x.date === d && x.level === String(l)).length + data.unavail.filter(x => x.date === d && x.level === String(l)).length;
+      const anyDone = d => [cl, zn].some(x => x.inspections.some(i => i.date === d) || x.unavail.some(i => i.date === d));
+      const rows = [], off = []; let d = from;
+      for (let g = 0; g < 400 && d <= to; g++, d = SM.addDays(d, 1)) {
+        const wd = new Date(d + 'T00:00:00Z').getUTCDay(); if (wd === 0 || wd === 6) continue;
+        if (d === today ? false : !anyDone(d)) { if (d < today) off.push(d); continue; }
+        const items = [];
+        [['classroom', 'ห้อง', cl], ['zone', 'เขต', zn]].forEach(x => CR.LEVELS.forEach(l => { const n = cnt(x[2], d, l); if (n < CR.ROOMS) items.push({ txt: x[1] + ' ม.' + l + ' (' + n + '/' + CR.ROOMS + ')', who: (names[d + '|' + x[0] + '|' + l] || []).join(', '), zero: n === 0 }); }));
+        if (items.length) rows.push({ d, items, today: d === today });
+      }
+      if (!rows.length) { box.innerHTML = '<div class="card"><h3>ห้องที่ยังไม่ได้ตรวจ</h3><div class="note ok">ไม่มีห้องค้างตรวจในช่วงนี้</div>' + (off.length ? '<div class="muted" style="margin-top:6px">วันที่ไม่มีการตรวจเลย (ไม่นับค้าง): ' + off.map(thd).join(', ') + '</div>' : '') + '</div>'; return; }
+      box.innerHTML = `<div class="card"><h3>ห้องที่ยังไม่ได้ตรวจเกินเวลา</h3>
+        <div class="muted" style="margin-bottom:8px">รายการที่ยังส่งไม่ครบ ${rows.length} วัน${late ? '' : ' (วันนี้จะนับว่าเกินเวลาหลัง 12:00 น.)'} · แสดงรายชื่อเวรของชั้นนั้นเพื่อไปตามได้ง่าย</div>
+        ${rows.map(r => `<div class="odr ${r.today && !late ? 'soft' : ''}"><div class="odh"><b>${thd(r.d)}</b><span class="badge ${r.today && !late ? 'warn' : 'bad'}">${r.today ? (late ? 'วันนี้ เกินเวลา' : 'วันนี้ ยังไม่ครบ') : 'ค้างตรวจ'} ${r.items.length} รายการ</span></div>
+          ${r.items.map(i => `<div class="odi"><span>${esc(i.txt)}${i.zero ? ' <small class="muted">ยังไม่ส่งเลย</small>' : ''}</span><span class="muted">${esc(i.who || 'ไม่ได้จัดเวร')}</span></div>`).join('')}</div>`).join('')}
+        ${off.length ? '<div class="muted" style="margin-top:6px">วันที่ไม่มีการตรวจเลย (ไม่นับค้าง): ' + off.map(thd).join(', ') + '</div>' : ''}</div>`;
+    } catch (e) { box.innerHTML = '<div class="card"><div class="note bad">' + esc(e.message) + '</div></div>'; }
+  }
+
   async function insights() {
     st.from = st.from || SM.addDays(todayISO(), -13); st.to = st.to || todayISO(); st.thr = st.thr || 50; st.rep = st.rep || 2;
     pane().innerHTML = `<div class="card"><div class="tb"><div><label>ตั้งแต่</label><input type="date" id="f" value="${st.from}" max="${todayISO()}"></div>
       <div><label>ถึง</label><input type="date" id="t" value="${st.to}" max="${todayISO()}"></div></div>
       <div class="tb"><div><label>เตือนเมื่อคะแนนต่ำกว่า</label><select id="th">${[50, 60, 70, 80].map(v => `<option ${v === st.thr ? 'selected' : ''}>${v}</option>`).join('')}</select></div>
       <div><label>ซ้ำอย่างน้อย (วัน)</label><select id="rp">${[2, 3, 4, 5].map(v => `<option ${v === st.rep ? 'selected' : ''}>${v}</option>`).join('')}</select></div></div></div>
-      <div id="ins" class="spin">กำลังโหลด...</div>`;
+      <div id="od"></div><div id="ins" class="spin">กำลังโหลด...</div>`;
     const reload = () => { st.from = document.getElementById('f').value; st.to = document.getElementById('t').value; st.thr = Number(document.getElementById('th').value); st.rep = Number(document.getElementById('rp').value); insights(); };
     ['f', 't', 'th', 'rp'].forEach(i => document.getElementById(i).onchange = reload);
     if (!st.from || !st.to || st.from > st.to) { document.getElementById('ins').innerHTML = '<div class="note">ช่วงวันที่ไม่ถูกต้อง</div>'; return; }
+    overdueCard(st.from, st.to);
     try {
       const data = await api('adminList', { kind: st.kind, from: st.from, to: st.to });
       const ins = data.inspections;
@@ -274,24 +301,8 @@
 
   // ---------- สถิติการเข้าเวรต่อเดือน ----------
   function statsCard(date) {
-    const ym = date.slice(0, 7), box = document.createElement('div');
-    box.className = 'card'; box.innerHTML = `<h2>สถิติการเข้าเวรรายเดือน</h2><div class="tb"><div><label>เดือน</label><input type="month" id="sm" value="${ym}"></div></div><div id="so" class="muted">กำลังโหลด...</div>`;
-    document.getElementById('pane').appendChild(box);
-    const load = async () => {
-      const m = box.querySelector('#sm').value, o = box.querySelector('#so'); if (!m) return;
-      try {
-        const last = new Date(Date.UTC(+m.slice(0, 4), +m.slice(5), 0)).getUTCDate();
-        const rows = await api('adminRosterRange', { from: m + '-01', to: m + '-' + String(last).padStart(2, '0') });
-        const cnt = {}; const days = {};
-        rows.forEach(r => r.names.forEach(n => {
-          const c = cnt[n] = cnt[n] || { cl: 0, zn: 0, ot: 0, d: {} };
-          if (!c.d[r.date + r.section]) { c.d[r.date + r.section] = 1; if (r.section === 'classroom') c.cl++; else if (r.section === 'zone') c.zn++; else c.ot++; }
-        }));
-        const list = Object.keys(cnt).map(n => ({ n, cl: cnt[n].cl, zn: cnt[n].zn, ot: cnt[n].ot, t: cnt[n].cl + cnt[n].zn + cnt[n].ot })).sort((a, b) => b.t - a.t || a.n.localeCompare(b.n, 'th'));
-        o.innerHTML = list.length ? `<div class="scroll"><table class="dt"><tr><th>ชื่อ</th><th>ตรวจห้อง</th><th>ตรวจเขต</th><th>อื่น ๆ</th><th>รวม (ครั้ง)</th></tr>${list.map(x => `<tr><td class="l">${esc(x.n)}</td><td>${x.cl}</td><td>${x.zn}</td><td>${x.ot}</td><td><b>${x.t}</b></td></tr>`).join('')}</table></div>` : 'ยังไม่มีข้อมูลเวรในเดือนนี้';
-      } catch (e) { o.textContent = e.message; }
-    };
-    box.querySelector('#sm').onchange = load; load();
+    const box = document.createElement('div'); document.getElementById('pane').appendChild(box);
+    window.ROSTER.mountStats(box, { api, date, toast });
   }
 
   // ---------- ตั้งค่า ----------

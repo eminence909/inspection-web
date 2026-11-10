@@ -298,6 +298,39 @@
     loadHist(); load(date);
   }
 
-  const api = { SECTIONS, parsePaste, parseOcr, matchKnown, prepImage, viewHtml, historyHtml, thShort, suggest, bare, mountEditor, mapFromEntries, groupLabel };
+  // สถิติการเข้าเวรรายคนต่อเดือน (นับเป็น "วัน" ต่อหมวด คนเดียวกันอยู่หมวดเดียวกันหลายช่องในวันเดียวนับครั้งเดียว)
+  function mountStats(el, o) { // o: { api, date, toast }
+    const ym = (o.date || '').slice(0, 7);
+    el.innerHTML = `<div class="card"><h3 style="margin:0 0 8px">สถิติการเข้าเวรรายคนต่อเดือน</h3>
+      <div class="tb"><div><label>เดือน</label><input type="month" id="sm" value="${ym}"></div><button class="btn sec" id="sx" style="margin:0">ดาวน์โหลด CSV</button></div>
+      <div id="so" class="muted">กำลังโหลด...</div></div>`;
+    const COLS = [['flag', 'เสาธง'], ['late', 'มาสาย'], ['classroom', 'ตรวจห้อง'], ['zone', 'ตรวจเขต'], ['pnn', 'พี่ไหว้น้อง'], ['radio', 'เสียงตามสาย']];
+    let rows = [];
+    const load = async () => {
+      const m = el.querySelector('#sm').value, out = el.querySelector('#so'); if (!m) return;
+      try {
+        const last = new Date(Date.UTC(+m.slice(0, 4), +m.slice(5), 0)).getUTCDate();
+        const es = await o.api('rosterRange', { from: m + '-01', to: m + '-' + String(last).padStart(2, '0') });
+        const cnt = {};
+        es.forEach(e => e.names.forEach(n => { const k = bare(n), c = cnt[k] = cnt[k] || { n, s: {}, d: {} }; const dk = e.date + '|' + e.section; if (!c.d[dk]) { c.d[dk] = 1; c.s[e.section] = (c.s[e.section] || 0) + 1; } }));
+        rows = Object.keys(cnt).map(k => { const c = cnt[k]; return { n: c.n, s: c.s, t: COLS.reduce((a, x) => a + (c.s[x[0]] || 0), 0), days: new Set(Object.keys(c.d).map(x => x.split('|')[0])).size }; }).sort((a, b) => b.t - a.t || a.n.localeCompare(b.n, 'th'));
+        if (!rows.length) { out.textContent = 'ยังไม่มีข้อมูลเวรในเดือนนี้'; return; }
+        const tt = rows.map(x => x.t), avg = tt.reduce((a, b) => a + b, 0) / tt.length, hi = Math.max.apply(null, tt), lo = Math.min.apply(null, tt);
+        out.innerHTML = `<div class="sc3" style="margin-bottom:10px"><div><b>${rows.length}</b><small>คนที่เข้าเวร</small></div><div><b>${avg.toFixed(1)}</b><small>เฉลี่ย (ครั้ง/คน)</small></div><div><b>${lo}–${hi}</b><small>น้อยสุด–มากสุด</small></div></div>
+          <div class="scroll"><table class="dt"><tr><th>ชื่อ</th>${COLS.map(x => '<th>' + x[1] + '</th>').join('')}<th>รวม</th><th>จำนวนวัน</th></tr>${rows.map(x => `<tr><td class="l">${esc(x.n)}</td>${COLS.map(c => '<td>' + (x.s[c[0]] || '·') + '</td>').join('')}<td><b${x.t === hi && hi > lo ? ' style="color:var(--o)"' : x.t === lo && hi > lo ? ' style="color:var(--b)"' : ''}>${x.t}</b></td><td>${x.days}</td></tr>`).join('')}</table></div>
+          <div class="muted" style="margin-top:6px">ตัวเลขสีส้ม = เข้าเวรมากที่สุด สีฟ้า = น้อยที่สุด ใช้ดูความเท่าเทียมของการจัดเวร</div>`;
+      } catch (e) { out.textContent = e.message; }
+    };
+    el.querySelector('#sm').onchange = load;
+    el.querySelector('#sx').onclick = () => {
+      if (!rows.length) return o.toast && o.toast('ยังไม่มีข้อมูล');
+      const q = v => '"' + String(v).replace(/"/g, '""') + '"';
+      const csv = '﻿' + [['ชื่อ'].concat(COLS.map(x => x[1]), ['รวม', 'จำนวนวัน']).map(q).join(',')].concat(rows.map(x => [x.n].concat(COLS.map(c => x.s[c[0]] || 0), [x.t, x.days]).map(q).join(','))).join('\r\n');
+      const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' })); a.download = 'สถิติเวร_' + el.querySelector('#sm').value + '.csv'; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+    };
+    load();
+  }
+
+  const api = { mountStats, SECTIONS, parsePaste, parseOcr, matchKnown, prepImage, viewHtml, historyHtml, thShort, suggest, bare, mountEditor, mapFromEntries, groupLabel };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.ROSTER = api;
 })(typeof window !== 'undefined' ? window : this);
