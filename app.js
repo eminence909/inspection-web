@@ -541,7 +541,7 @@
         const r = await api('submit', base);
         if (r.already) { toast('ห้องนี้ตรวจแล้ว'); S.status = await api('status', { kind: S.kind, date: S.date, level: S.level }); return rooms(); }
       }
-      clearDraft(); toast('บันทึกผลตรวจเรียบร้อย');
+      clearDraft(); toast('บันทึกผลตรวจเรียบร้อย'); if (window.FX) FX.done();
       S.status = await api('status', { kind: S.kind, date: S.date, level: S.level });
       S.editing = false; rooms();
     } catch (e) {
