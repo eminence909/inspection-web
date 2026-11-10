@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+<defs>
+<radialGradient id="g" cx="38%" cy="32%" r="75%"><stop offset="0" stop-color="#fff" stop-opacity=".30"/><stop offset=".45" stop-color="#9a9aa2" stop-opacity=".08"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>
+<linearGradient id="s" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".95"/><stop offset=".5" stop-color="#8d8d95" stop-opacity=".55"/><stop offset="1" stop-color="#2a2a2e" stop-opacity=".25"/></linearGradient>
+<radialGradient id="f" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#fff" stop-opacity=".22"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+</defs>
+<ellipse cx="200" cy="352" rx="150" ry="16" fill="url(#f)"/>
+<circle cx="200" cy="190" r="128" fill="url(#g)"/>
+<ellipse cx="200" cy="190" rx="128" ry="128.0" fill="none" stroke="url(#s)" stroke-width="1.1" opacity="0.28" transform="rotate(-20.0 200 190)"/>
+<ellipse cx="200" cy="190" rx="128" ry="127.3" fill="none" stroke="url(#s)" stroke-width="1.1" opacity="0.33" transform="rotate(-16.4 200 190)"/>
+<ellipse cx="200" cy="190" rx="128" ry="125.2" fill="none" stroke="url(#s)" stroke-width="1.1" opacity="0.38" transform="rotate(-12.8 200 190)"/>
+<ellipse cx="200" cy="190" rx="128" ry="121.7" fill="none" stroke="url(#s)" stroke-width="1.1" opacity="0.43" transform="rotate(-9.2 200 190)"/>
+<ellipse cx="200" cy="190" rx="128" ry="116.9" fill="none" stroke="url(#s)" stroke-width="1.1" opacity="0.48" transform="rotate(-5.6 200 190)"/>
+<ellipse cx="200" cy="190" rx="128" ry="110.9" fill="none" stroke="url(#s)" stroke-width="1.1" opacity="0.53" transform="rotate(-2.0 200 190)"/>
+<ellipse cx="200" cy="190" rx="128" ry="103.6" fill="none" stroke="url(#s)" stroke-width="1.1" opacity="0.57" transform="rotate(1.6 200 190)"/>
+<ellipse cx="200" cy="190" rx="128" ry="95.1" fill="none" stroke="url(#s)" stroke-width="1.1" opacity="0.61" transform="rotate(5.2 200 190)"/>
+<ellipse cx="200" cy="190" rx="128" ry="85.6" fill="none" stroke="url(#s)" stroke-width="1.1" opacity="0.65" transform="rotate(8.8 200 190)"/>
+<ellipse cx="200" cy="190" rx="128" ry="75.2" fill="none" stroke="url(#s)" stroke-width="1.1" opacity="0.68" transform="rotate(12.4 200 190)"/>
+<ellipse cx="200" cy="190" rx="128" ry="64.0" fill="none" stroke="url(#s)" stroke-width="1.1" opacity="0.71" transform="rotate(16.0 200 190)"/>
+<ellipse cx="200" cy="190" rx="128" ry="52.1" fill="none" stroke="url(#s)" stroke-width="1.1" opacity="0.74" transform="rotate(19.6 200 190)"/>
+<ellipse cx="200" cy="190" rx="128" ry="39.6" fill="none" stroke="url(#s)" stroke-width="1.1" opacity="0.76" transform="rotate(23.2 200 190)"/>
+<ellipse cx="200" cy="190" rx="128" ry="26.6" fill="none" stroke="url(#s)" stroke-width="1.1" opacity="0.77" transform="rotate(26.8 200 190)"/>
+<ellipse cx="200" cy="190" rx="128" ry="13.4" fill="none" stroke="url(#s)" stroke-width="1.1" opacity="0.78" transform="rotate(30.4 200 190)"/>
+<ellipse cx="200" cy="190" rx="128" ry="0.0" fill="none" stroke="url(#s)" stroke-width="1.1" opacity="0.78" transform="rotate(34.0 200 190)"/>
+<ellipse cx="200" cy="190" rx="128" ry="13.4" fill="none" stroke="url(#s)" stroke-width="1.1" opacity="0.78" transform="rotate(37.6 200 190)"/>
+<ellipse cx="200" cy="190" rx="128" ry="26.6" fill="none" stroke="url(#s)" stroke-width="1.1" opacity="0.77" transform="rotate(41.2 200 190)"/>
+<ellipse cx="200" cy="190" rx="128" ry="39.6" fill="none" stroke="url(#s)" stroke-width="1.1" opacity="0.76" transform="rotate(44.8 200 190)"/>
+<ellipse cx="200" cy="190" rx="128" ry="52.1" fill="none" stroke="url(#s)" stroke-width="1.1" opacity="0.74" transform="rotate(48.4 200 190)"/>
+<ellipse cx="200" cy="190" rx="128" ry="64.0" fill="none" stroke="url(#s)" stroke-width="1.1" opacity="0.71" transform="rotate(52.0 200 190)"/>
+<ellipse cx="200" cy="190" rx="128" ry="75.2" fill="none" stroke="url(#s)" stroke-width="1.1" opacity="0.68" transform="rotate(55.6 200 190)"/>
+<ellipse cx="200" cy="190" rx="128" ry="85.6" fill="none" stroke="url(#s)" stroke-width="1.1" opacity="0.65" transform="rotate(59.2 200 190)"/>
+<ellipse cx="200" cy="190" rx="128" ry="95.1" fill="none" stroke="url(#s)" stroke-width="1.1" opacity="0.61" transform="rotate(62.8 200 190)"/>
+<ellipse cx="200" cy="190" rx="128" ry="103.6" fill="none" stroke="url(#s)" stroke-width="1.1" opacity="0.57" transform="rotate(66.4 200 190)"/>
+<ellipse cx="200" cy="190" rx="128" ry="110.9" fill="none" stroke="url(#s)" stroke-width="1.1" opacity="0.53" transform="rotate(70.0 200 190)"/>
+<ellipse cx="200" cy="190" rx="128" ry="116.9" fill="none" stroke="url(#s)" stroke-width="1.1" opacity="0.48" transform="rotate(73.6 200 190)"/>
+<ellipse cx="200" cy="190" rx="128" ry="121.7" fill="none" stroke="url(#s)" stroke-width="1.1" opacity="0.43" transform="rotate(77.2 200 190)"/>
+<ellipse cx="200" cy="190" rx="128" ry="125.2" fill="none" stroke="url(#s)" stroke-width="1.1" opacity="0.38" transform="rotate(80.8 200 190)"/>
+<ellipse cx="200" cy="190" rx="128" ry="127.3" fill="none" stroke="url(#s)" stroke-width="1.1" opacity="0.33" transform="rotate(84.4 200 190)"/>
+<ellipse cx="200" cy="190" rx="0.0" ry="128" fill="none" stroke="url(#s)" stroke-width=".8" opacity=".35" transform="rotate(-20 200 190)"/>
+<ellipse cx="200" cy="190" rx="64.0" ry="128" fill="none" stroke="url(#s)" stroke-width=".8" opacity=".35" transform="rotate(-20 200 190)"/>
+<ellipse cx="200" cy="190" rx="110.9" ry="128" fill="none" stroke="url(#s)" stroke-width=".8" opacity=".35" transform="rotate(-20 200 190)"/>
+<ellipse cx="200" cy="190" rx="128.0" ry="128" fill="none" stroke="url(#s)" stroke-width=".8" opacity=".35" transform="rotate(-20 200 190)"/>
+<ellipse cx="200" cy="190" rx="110.9" ry="128" fill="none" stroke="url(#s)" stroke-width=".8" opacity=".35" transform="rotate(-20 200 190)"/>
+<ellipse cx="200" cy="190" rx="64.0" ry="128" fill="none" stroke="url(#s)" stroke-width=".8" opacity=".35" transform="rotate(-20 200 190)"/>
+<circle cx="200" cy="190" r="128" fill="none" stroke="#fff" stroke-opacity=".5" stroke-width="1.4"/>
+<path d="M200 140 Q204 186 250 190 Q204 194 200 240 Q196 194 150 190 Q196 186 200 140Z" fill="#fff" fill-opacity=".92"/>
+</svg>

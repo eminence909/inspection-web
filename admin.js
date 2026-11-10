@@ -371,10 +371,10 @@
       const pts = mine.map(x => ({ d: x.date, v: x.total, l: avg(lvDay[x.date]) }));
       const W = 640, H = 200, P = 28, n = pts.length, allv = pts.map(p => p.v).concat(pts.map(p => p.l)), lo0 = Math.max(0, Math.floor((Math.min.apply(null, allv) - 8) / 5) * 5), hi0 = Math.min(100, Math.ceil((Math.max.apply(null, allv) + 8) / 5) * 5), X = i => P + (n === 1 ? (W - 2 * P) / 2 : i * (W - 2 * P) / (n - 1)), Y = v => H - P - ((v - lo0) / (hi0 - lo0 || 1)) * (H - 2 * P);
       const line = (k, c, dash) => `<polyline fill="none" stroke="${c}" stroke-width="2.5" ${dash ? 'stroke-dasharray="5 4"' : ''} points="${pts.map((p, i) => X(i) + ',' + Y(p[k])).join(' ')}"/>`;
-      const grid = [0, 1, 2, 3, 4].map(k => Math.round(lo0 + (hi0 - lo0) * k / 4)).map(v => `<line x1="${P}" x2="${W - P}" y1="${Y(v)}" y2="${Y(v)}" stroke="rgba(255,255,255,.1)"/><text x="2" y="${Y(v) + 4}" fill="#8ea69b" font-size="11">${v}</text>`).join('');
-      const dots = pts.map((p, i) => `<circle cx="${X(i)}" cy="${Y(p.v)}" r="3.5" fill="#b9c32f"><title>${thd(p.d)}: ${p.v}</title></circle>`).join('');
-      const step = Math.ceil(n / 8), xl = pts.map((p, i) => i % step === 0 ? `<text x="${X(i)}" y="${H - 8}" fill="#8ea69b" font-size="10" text-anchor="middle">${thd(p.d).split(' ').slice(0, 2).join(' ')}</text>` : '').join('');
-      const chart = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto">${grid}${line('l', '#6fb1d9', true)}${line('v', '#b9c32f')}${dots}${xl}</svg>`;
+      const grid = [0, 1, 2, 3, 4].map(k => Math.round(lo0 + (hi0 - lo0) * k / 4)).map(v => `<line x1="${P}" x2="${W - P}" y1="${Y(v)}" y2="${Y(v)}" stroke="rgba(255,255,255,.1)"/><text x="2" y="${Y(v) + 4}" fill="#8e8e95" font-size="11">${v}</text>`).join('');
+      const dots = pts.map((p, i) => `<circle cx="${X(i)}" cy="${Y(p.v)}" r="3.5" fill="#f2f2f4"><title>${thd(p.d)}: ${p.v}</title></circle>`).join('');
+      const step = Math.ceil(n / 8), xl = pts.map((p, i) => i % step === 0 ? `<text x="${X(i)}" y="${H - 8}" fill="#8e8e95" font-size="10" text-anchor="middle">${thd(p.d).split(' ').slice(0, 2).join(' ')}</text>` : '').join('');
+      const chart = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto">${grid}${line('l', '#8e8e95', true)}${line('v', '#f2f2f4')}${dots}${xl}</svg>`;
       const tv = mine.map(x => x.total), hi = mine.reduce((m, x) => x.total > m.total ? x : m, mine[0]), lo = mine.reduce((m, x) => x.total < m.total ? x : m, mine[0]);
       // เฉลี่ยรายหมวด (ร้อยละของคะแนนเต็มหมวด) หาจุดที่อ่อนที่สุด
       const cats = def.categories.map((c, ci) => { const v = mine.map(x => K.dailyTotals(st.kind, x.scores).cats[ci].sum / c.max * 100); return { c, p: avg(v) }; });
