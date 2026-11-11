@@ -513,3 +513,4 @@ html[data-theme=light] main .tabs{background:rgba(243,243,241,.92)}
 }
 .top .ttl small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 @media(max-width:520px){#logout{padding:5px 11px!important;font-size:12px!important}.top{gap:8px;padding:10px 14px}}
+.btn.danger{background:var(--r);color:#fff}.btn.danger:hover{background:#d4574a}

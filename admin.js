@@ -426,6 +426,17 @@
       <div class="card"><h2>รอบสรุปรายเดือนที่เปิดไว้</h2>${cycles.length ? cycles.map(c => `<div class="row" style="align-items:center;margin:6px 0"><span>${c.kind === 'zone' ? 'เขต' : 'ห้อง'} · ${esc(c.label)} · ${thd(c.startDate)}</span><button class="btn sec" data-d="${c.id}" style="margin:0;flex:0 0 80px;padding:6px">ลบ</button></div>`).join('') : '<div class="muted">ไม่มี</div>'}</div>
       <div class="card"><h2>รหัสผ่านผู้จัดเวร</h2><div class="muted">ลิงก์หน้าจัดเวร: roster.html</div><input type="password" id="rp" placeholder="รหัสใหม่ผู้จัดเวร (อย่างน้อย 4 ตัว)"><button class="btn" id="crp">เปลี่ยนรหัสผู้จัดเวร</button></div>
       <div class="card"><h2>นำเข้าไฟล์สำรองผลตรวจ</h2><div class="muted">ใช้เมื่อผู้ตรวจส่งผลไม่สำเร็จเพราะไม่มีสัญญาณ แล้วส่งไฟล์สำรอง (.json) มาให้ทางไลน์ เลือกไฟล์แล้วระบบส่งผลเข้าชีตให้</div><input type="file" id="qf" accept=".json,application/json"><button class="btn sec" id="qi">นำเข้าและส่งผล</button><div id="qr" class="muted"></div></div>
+      <div class="card"><h2>สำรองและอีเมลสรุปอัตโนมัติ</h2>
+        <div class="muted">สำรองชีตลงโฟลเดอร์ "สำรองข้อมูลระบบตรวจ" ใน Google Drive ทุกวันศุกร์ (เก็บ 8 ชุดล่าสุด) และส่งอีเมลสรุปห้องที่ยังไม่ได้ตรวจทุกเย็นวันทำการ</div>
+        <div id="au" class="note" style="margin:10px 0">กำลังตรวจสถานะ...</div>
+        <label for="de">อีเมลที่รับสรุป (เว้นว่าง = อีเมลเจ้าของสคริปต์)</label><input type="text" id="de" value="${esc(cfg.digestEmail || '')}" placeholder="name@gmail.com">
+        <div class="row" style="margin-top:8px"><button class="btn sec" id="des" style="margin:0">บันทึกอีเมล</button><button class="btn" id="aut" style="margin:0">เปิดใช้งาน</button></div>
+        <div class="row" style="margin-top:8px"><button class="btn sec" id="bkn" style="margin:0">สำรองตอนนี้</button><button class="btn sec" id="dgn" style="margin:0">ส่งอีเมลทดสอบ</button></div></div>
+      <div class="card"><h2>ล้างข้อมูลทดสอบ</h2>
+        <div class="muted">ใช้ก่อนเริ่มใช้งานจริงเพื่อลบผลตรวจที่ลองไว้ ระบบจะทำสำเนาทั้งชีตไว้ใน Drive ก่อนล้างทุกครั้ง ไม่แตะรายชื่อ รหัสผ่าน หรือค่าตั้งค่า</div>
+        <div class="tb" style="margin-top:8px"><div><label for="cf">ตั้งแต่วันที่</label><input type="date" id="cf" max="${todayISO()}"></div><div><label for="ct">ถึงวันที่</label><input type="date" id="ct" max="${todayISO()}"></div></div>
+        <label style="display:flex;gap:8px;align-items:center;font-weight:400;letter-spacing:0"><input type="checkbox" id="cr" style="width:auto"> ล้างตารางเวรในช่วงนี้ด้วย</label>
+        <button class="btn sec" id="cc">ดูจำนวนที่จะถูกลบ</button><div id="co" style="margin-top:10px"></div></div>
       <div class="card"><h2>เปลี่ยนรหัสผ่านแอดมิน</h2><input type="password" id="np" placeholder="รหัสใหม่ (อย่างน้อย 4 ตัว)"><button class="btn" id="cp">เปลี่ยนรหัส</button></div>`;
       document.getElementById('qi').onclick = async () => {
         const f = document.getElementById('qf').files[0], out = document.getElementById('qr'); if (!f) return toast('เลือกไฟล์ก่อน');
@@ -444,6 +455,30 @@
       const saveHol = list => api('adminSetConfig', { values: { holidays: JSON.stringify(list) } }).then(() => { hol = list; drawHol(); toast('บันทึกแล้ว'); }).catch(fail);
       document.getElementById('ha').onclick = () => { const d = document.getElementById('hd').value; if (!d) return toast('เลือกวันที่ก่อน'); if (hol.some(h => h.d === d)) return toast('มีวันนี้อยู่แล้ว'); saveHol(hol.concat([{ d, r: document.getElementById('hr').value.trim() }])); document.getElementById('hd').value = ''; document.getElementById('hr').value = ''; };
       drawHol();
+      // ----- สำรอง/อีเมลอัตโนมัติ -----
+      const auSt = async () => {
+        const el = document.getElementById('au'); if (!el) return;
+        try { const r = await api('adminAutoStatus'); el.className = 'note' + (r.on ? ' ok' : ''); el.innerHTML = r.on ? '<b>เปิดใช้งานอยู่</b> · อีเมลสรุปส่งไปที่ ' + esc(r.email || '-') : '<b>ยังไม่เปิดใช้งาน</b> กด "เปิดใช้งาน" (ครั้งแรก Google อาจขอสิทธิ์เพิ่ม)'; const b = document.getElementById('aut'); b.textContent = r.on ? 'ปิดใช้งาน' : 'เปิดใช้งาน'; b.dataset.on = r.on ? '1' : ''; }
+        catch (e) { el.className = 'note bad'; el.textContent = 'ยังใช้ไม่ได้: ' + e.message + ' (ต้องวางโค้ด Code.gs ล่าสุดแล้ว Deploy เวอร์ชันใหม่)'; }
+      };
+      auSt();
+      document.getElementById('aut').onclick = () => api(document.getElementById('aut').dataset.on ? 'adminAutoOff' : 'adminAutoSetup').then(() => { toast('อัปเดตแล้ว'); auSt(); }).catch(fail);
+      document.getElementById('des').onclick = () => api('adminSetConfig', { values: { digestEmail: document.getElementById('de').value.trim() } }).then(() => { toast('บันทึกอีเมลแล้ว'); auSt(); }).catch(fail);
+      document.getElementById('bkn').onclick = () => { toast('กำลังสำรอง...'); api('adminBackupNow').then(r => toast('สำรองแล้วใน Drive')).catch(fail); };
+      document.getElementById('dgn').onclick = () => { toast('กำลังส่ง...'); api('adminDigestNow').then(r => toast(r.sentTo ? 'ส่งอีเมลไปที่ ' + r.sentTo + ' แล้ว' : 'ไม่ได้ส่ง: ' + (r.skipped || ''))).catch(fail); };
+      // ----- ล้างข้อมูลทดสอบ -----
+      document.getElementById('cc').onclick = async () => {
+        const f = document.getElementById('cf').value, t = document.getElementById('ct').value, out = document.getElementById('co');
+        if (!f || !t) return toast('เลือกวันที่เริ่มและสิ้นสุดก่อน');
+        try {
+          const n = await api('adminCountData', { from: f, to: t });
+          const roster = document.getElementById('cr').checked, tot = n.Inspections + n.Teams + n.Unavail + n.EditLog + (roster ? n.Roster : 0);
+          out.innerHTML = `<div class="note bad"><b>จะลบ ${tot} แถว</b> ในช่วง ${thd(f)} ถึง ${thd(t)}<br>ผลตรวจ ${n.Inspections} · ทีมผู้ตรวจ ${n.Teams} · ตรวจไม่ได้ ${n.Unavail} · ประวัติแก้ไข ${n.EditLog}${roster ? ' · เวร ' + n.Roster : ''}</div>
+            <label for="cw">พิมพ์คำว่า ล้างข้อมูล เพื่อยืนยัน</label><input type="text" id="cw" autocomplete="off"><button class="btn danger" id="cx" disabled>ล้างข้อมูลช่วงนี้</button>`;
+          const w = document.getElementById('cw'), x = document.getElementById('cx'); w.oninput = () => { x.disabled = w.value.trim() !== 'ล้างข้อมูล' || !tot; };
+          x.onclick = async () => { x.disabled = true; x.textContent = 'กำลังสำรองและล้าง...'; try { const r = await api('adminClearData', { from: f, to: t, roster, confirm: 'ล้างข้อมูล' }); out.innerHTML = '<div class="note ok"><b>ล้างเสร็จแล้ว</b> สำเนาก่อนล้างอยู่ในโฟลเดอร์ "สำรองข้อมูลระบบตรวจ" ใน Google Drive</div>'; toast('ล้างข้อมูลแล้ว'); } catch (e) { fail(e); x.textContent = 'ล้างข้อมูลช่วงนี้'; x.disabled = false; } };
+        } catch (e) { fail(e); }
+      };
       const lines = id => document.getElementById(id).value.split('\n').map(s => s.trim()).filter(Boolean);
       document.getElementById('sn').onclick = () => api('adminSetNames', { list: lines('nm') }).then(() => toast('บันทึกแล้ว')).catch(fail);
       document.getElementById('sr').onclick = () => api('adminSetReasons', { list: lines('rs') }).then(() => toast('บันทึกแล้ว')).catch(fail);

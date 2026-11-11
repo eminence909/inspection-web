@@ -88,10 +88,19 @@ function out_(o) { return ContentService.createTextOutput(JSON.stringify(o)).set
 function key_(kind, date, level, room) { return [kind, date, level, room].filter(function (x) { return x !== undefined && x !== ''; }).join('|'); }
 function adminPin_() { return ADMIN_PIN || cfg_('adminPin'); }
 function rosterPin_() { return ROSTER_PIN || cfg_('rosterPin') || '5678'; }
-function checkAdmin_(p) { if (String(p.pin) !== String(adminPin_())) throw new Error('รหัสแอดมินไม่ถูกต้อง'); }
+// ล็อกชั่วคราวเมื่อใส่รหัสผิดติดกัน 5 ครั้ง (10 นาที) กันการเดารหัส  — นับแยกแอดมิน/ผู้จัดเวร
+var PIN_MAX_FAIL = 5, PIN_LOCK_SEC = 600;
+function pinCheck_(who, ok) {
+  var c = CacheService.getScriptCache(), k = 'pinfail_' + who, n = Number(c.get(k) || 0);
+  if (n >= PIN_MAX_FAIL) throw new Error('ใส่รหัสผิดหลายครั้ง ถูกล็อกชั่วคราว กรุณาลองใหม่ในอีก 10 นาที');
+  if (ok) { if (n) c.remove(k); return; }
+  c.put(k, String(n + 1), PIN_LOCK_SEC);
+  throw new Error(who === 'admin' ? 'รหัสแอดมินไม่ถูกต้อง' : 'รหัสผ่านไม่ถูกต้อง');
+}
+function checkAdmin_(p) { pinCheck_('admin', String(p.pin) === String(adminPin_())); }
 function checkRoster_(p) {
   var pin = String(p.pin);
-  if (pin !== String(rosterPin_()) && pin !== String(adminPin_())) throw new Error('รหัสผ่านไม่ถูกต้อง');
+  pinCheck_('roster', pin === String(rosterPin_()) || pin === String(adminPin_()));
 }
 var ROSTER_SECTIONS = ['flag', 'late', 'classroom', 'zone', 'pnn', 'radio'];
 function validDate_(d) { return /^\d{4}-\d{2}-\d{2}$/.test(d) && d <= today_(); }
@@ -110,7 +119,7 @@ function handle_(p) {
     initAll_();
     var fn = ACTIONS[p.action];
     if (!fn) throw new Error('ไม่รู้จักคำสั่ง: ' + p.action);
-    var write = /^(submit|edit|save|roster(Save)|admin(Edit|Set|Add|Del))/.test(p.action);
+    var write = /^(submit|edit|save|roster(Save)|admin(Edit|Set|Add|Del|Clear))/.test(p.action);
     if (write) lock.waitLock(20000);
     return out_({ ok: true, data: fn(p) });
   } catch (err) {
@@ -328,7 +337,7 @@ var ACTIONS = {
   adminSetConfig: function (p) {
     checkAdmin_(p);
     CacheService.getScriptCache().remove('init');
-    var allow = ['schoolName', 'term', 'headBuilding', 'councilPresident', 'activityChair', 'lineUrl', 'advisor', 'deputyDirector', 'director', 'holidays'];
+    var allow = ['schoolName', 'term', 'headBuilding', 'councilPresident', 'activityChair', 'lineUrl', 'advisor', 'deputyDirector', 'director', 'holidays', 'digestEmail'];
     var cur = rows_('Config');
     Object.keys(p.values || {}).forEach(function (k) {
       if (allow.indexOf(k) < 0) return;
@@ -350,6 +359,28 @@ var ACTIONS = {
     put_('Config', { key: 'adminPin', value: p.newPin }, ex && ex._row);
     return true;
   },
+  // ล้างข้อมูลทดสอบ: นับก่อน แล้วล้างพร้อมสำเนาสำรองอัตโนมัติ
+  adminCountData: function (p) { checkAdmin_(p); return countData_(p); },
+  adminClearData: function (p) {
+    checkAdmin_(p);
+    if (p.confirm !== 'ล้างข้อมูล') throw new Error('ต้องพิมพ์คำว่า ล้างข้อมูล เพื่อยืนยัน');
+    var c = countData_(p), url = backupCopy_('สำรองก่อนล้างข้อมูล ' + p.from + ' ถึง ' + p.to + ' (สร้าง ' + now_() + ')');
+    var r = rangeFns_(p.from, p.to, !!p.roster), removed = {};
+    removed.Inspections = filterSheet_('Inspections', function (o) { return !r.inR(o.date); });
+    removed.Teams = filterSheet_('Teams', function (o) { return !r.inR(o.date); });
+    removed.Unavail = filterSheet_('Unavail', function (o) { return !r.inR(o.date); });
+    removed.EditLog = filterSheet_('EditLog', function (o) { return !r.inR(String(o.key).split('|')[1] || ''); });
+    if (p.roster) removed.Roster = filterSheet_('Roster', function (o) { return !r.inR(o.date); });
+    CacheService.getScriptCache().remove('init'); MEMO = {};
+    put_('EditLog', { time: now_(), by: 'admin', key: 'system', itemId: 'ล้างข้อมูล ' + p.from + '..' + p.to, oldValue: JSON.stringify(removed), newValue: '' });
+    return { removed: removed, backup: url };
+  },
+  // สำรองและอีเมลสรุปอัตโนมัติ
+  adminAutoStatus: function (p) { checkAdmin_(p); return autoStatus_(); },
+  adminAutoSetup: function (p) { checkAdmin_(p); autoOn_(); return autoStatus_(); },
+  adminAutoOff: function (p) { checkAdmin_(p); autoOff_(); return autoStatus_(); },
+  adminBackupNow: function (p) { checkAdmin_(p); return { url: backupCopy_('สำรองด้วยมือ ' + now_()) }; },
+  adminDigestNow: function (p) { checkAdmin_(p); return dailyDigest_(true); },
   // รอบเดือน (4 สัปดาห์เริ่มวันจันทร์) แอดมินเปิดเอง
   adminListCycles: function (p) { checkAdmin_(p); return rows_('Cycles').filter(function (r) { return !p.kind || r.kind === p.kind; }); },
   adminAddCycle: function (p) {
@@ -383,6 +414,97 @@ var ACTIONS = {
 };
 
 // ---------- internals ----------
+function validRange_(p) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(p.from)) || !/^\d{4}-\d{2}-\d{2}$/.test(String(p.to)) || p.from > p.to) throw new Error('ช่วงวันที่ไม่ถูกต้อง');
+  if (p.to > today_()) throw new Error('เลือกวันที่ล่วงหน้าไม่ได้');
+}
+function rangeFns_(from, to) { return { inR: function (d) { return !!d && d >= from && d <= to; } }; }
+function countData_(p) {
+  validRange_(p);
+  var r = rangeFns_(p.from, p.to), n = {};
+  n.Inspections = rows_('Inspections').filter(function (o) { return r.inR(o.date); }).length;
+  n.Teams = rows_('Teams').filter(function (o) { return r.inR(o.date); }).length;
+  n.Unavail = rows_('Unavail').filter(function (o) { return r.inR(o.date); }).length;
+  n.EditLog = rows_('EditLog').filter(function (o) { return r.inR(String(o.key).split('|')[1] || ''); }).length;
+  n.Roster = rows_('Roster').filter(function (o) { return r.inR(o.date); }).length;
+  return n;
+}
+// เขียนชีตใหม่โดยเก็บเฉพาะแถวที่ keep() เป็นจริง คืนจำนวนแถวที่ลบ
+function filterSheet_(name, keep) {
+  var s = sheet_(name), cols = SHEETS[name], last = s.getLastRow();
+  if (last < 2) return 0;
+  var vals = s.getRange(2, 1, last - 1, cols.length).getValues(), kept = [], removed = 0;
+  vals.forEach(function (row) {
+    var o = {};
+    cols.forEach(function (c, j) { o[c] = row[j] instanceof Date ? Utilities.formatDate(row[j], TZ, 'yyyy-MM-dd') : String(row[j]); });
+    if (keep(o)) kept.push(row); else removed++;
+  });
+  if (!removed) return 0;
+  s.getRange(2, 1, last - 1, cols.length).clearContent();
+  if (kept.length) s.getRange(2, 1, kept.length, cols.length).setNumberFormat('@').setValues(kept);
+  MEMO = {};
+  return removed;
+}
+function backupFolder_() {
+  var n = 'สำรองข้อมูลระบบตรวจ', it = DriveApp.getFoldersByName(n);
+  return it.hasNext() ? it.next() : DriveApp.createFolder(n);
+}
+function backupCopy_(name) {
+  return DriveApp.getFileById(ss_().getId()).makeCopy(name, backupFolder_()).getUrl();
+}
+// ทำงานอัตโนมัติ (ตั้งเวลาด้วยปุ่มในหน้าตั้งค่าแอดมิน): สำรองทุกวันศุกร์ เก็บ 8 ชุดล่าสุด
+function weeklyBackup() {
+  backupCopy_('สำรองรายสัปดาห์ ' + today_());
+  var files = [], it = backupFolder_().getFiles();
+  while (it.hasNext()) { var f = it.next(); if (f.getName().indexOf('สำรองรายสัปดาห์ ') === 0) files.push(f); }
+  files.sort(function (a, b) { return a.getName() < b.getName() ? 1 : a.getName() > b.getName() ? -1 : 0; });
+  files.slice(8).forEach(function (f) { f.setTrashed(true); });
+}
+var DIGEST_LEVELS_ = [1, 2, 3, 4, 5, 6], DIGEST_ROOMS_ = 12;
+function digestEmail_() { return cfg_('digestEmail') || Session.getEffectiveUser().getEmail(); }
+// อีเมลสรุปตอนเย็น: ห้องที่ยังไม่ได้ตรวจของวันนี้ (ข้ามเสาร์-อาทิตย์และวันหยุดที่ตั้งไว้)
+function dailyDigest() { return dailyDigest_(false); }
+function dailyDigest_(force) {
+  MEMO = {};
+  var d = today_();
+  if (!force) {
+    if (Number(Utilities.formatDate(new Date(), TZ, 'u')) >= 6) return { skipped: 'weekend' };
+    var hol = []; try { hol = JSON.parse(cfg_('holidays') || '[]'); } catch (e) {}
+    if (hol.some(function (h) { return h && h.d === d; })) return { skipped: 'holiday' };
+  }
+  var lines = [], missing = 0, names = { classroom: 'ห้องเรียน', zone: 'เขตพื้นที่' };
+  ['classroom', 'zone'].forEach(function (kind) {
+    var seen = {};
+    rows_('Inspections').forEach(function (r) { if (r.kind === kind && r.date === d) seen[r.level + '/' + r.room] = 1; });
+    rows_('Unavail').forEach(function (r) { if (r.kind === kind && r.date === d) seen[r.level + '/' + r.room] = 1; });
+    var kl = [];
+    DIGEST_LEVELS_.forEach(function (L) {
+      var m = [];
+      for (var R = 1; R <= DIGEST_ROOMS_; R++) if (!seen[L + '/' + R]) m.push(R);
+      if (m.length) { missing += m.length; kl.push('  ม.' + L + ': ' + (m.length === DIGEST_ROOMS_ ? 'ยังไม่ตรวจเลย' : 'ห้อง ' + m.join(', '))); }
+    });
+    lines.push('[' + names[kind] + ']' + (kl.length ? '' : ' ตรวจครบทุกห้องแล้ว'));
+    kl.forEach(function (x) { lines.push(x); });
+  });
+  var to = digestEmail_(); if (!to) return { skipped: 'no-email' };
+  var subject = 'สรุปการตรวจ ' + d + ': ' + (missing ? 'ยังไม่ได้ตรวจ ' + missing + ' ห้อง' : 'ครบทุกห้อง');
+  MailApp.sendEmail(to, subject, lines.join('\n') + '\n\n(อีเมลอัตโนมัติจากระบบตรวจห้องเรียนและเขตพื้นที่)');
+  return { sentTo: to, missing: missing };
+}
+var AUTO_FUNCS_ = ['weeklyBackup', 'dailyDigest'];
+function autoOff_() {
+  ScriptApp.getProjectTriggers().forEach(function (t) { if (AUTO_FUNCS_.indexOf(t.getHandlerFunction()) >= 0) ScriptApp.deleteTrigger(t); });
+}
+function autoOn_() {
+  autoOff_();
+  ScriptApp.newTrigger('weeklyBackup').timeBased().onWeekDay(ScriptApp.WeekDay.FRIDAY).atHour(18).inTimezone(TZ).create();
+  ScriptApp.newTrigger('dailyDigest').timeBased().everyDays(1).atHour(17).nearMinute(30).inTimezone(TZ).create();
+}
+function autoStatus_() {
+  var n = ScriptApp.getProjectTriggers().filter(function (t) { return AUTO_FUNCS_.indexOf(t.getHandlerFunction()) >= 0; }).length;
+  return { on: n >= 2, email: digestEmail_() };
+}
+function setupAuto() { autoOn_(); } // เรียกจากตัวแก้ไข Apps Script ได้เช่นกัน
 function driveFolder_() {
   var n = 'ผลตรวจห้อง-เขต (PDF ล่าสุด)', it = DriveApp.getFoldersByName(n);
   return it.hasNext() ? it.next() : DriveApp.createFolder(n);
