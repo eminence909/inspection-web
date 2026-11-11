@@ -141,30 +141,45 @@
     if (my !== NAV) return;
     S.date = S.date || S.init.today;
     $app.innerHTML = qBanner() + draftBanner() + `
-      <section class="hero">
+      <div class="home">
+      <section class="hero hl-hero">
         <h1>ตรวจห้องเรียน<br>และเขตพื้นที่</h1>
         <p>${esc(S.init.term || '')}<br>สภานักเรียน ${esc(S.init.schoolName || '')}</p></section>
-      <div class="stats" id="stats"><div><b>-</b><span>ตรวจห้องเรียน</span></div><div><b>-</b><span>ตรวจเขตพื้นที่</span></div><div><b>72</b><span>ห้องทั้งหมด</span></div><div><b>100</b><span>คะแนนเต็ม</span></div></div>
-      <div id="dstats"></div>
-      <div class="card"><label for="dt">วันที่ตรวจ</label>
+      <div class="wall" id="wall"></div>
+      <div class="card hl-date"><label for="dt">วันที่ตรวจ</label>
         <input type="date" id="dt" value="${S.date}" max="${S.init.today}">
         <div class="muted" id="dtl" style="margin-top:6px">${thDate(S.date)}</div><div id="hol"></div></div>
-      <div class="menu">
+      <div class="menu hl-menu">
         <button class="mcard" data-k="zone"><span><b>ตรวจเขตพื้นที่</b><small>Sripisai Clean Zone</small></span><span class="go">›</span></button>
         <button class="mcard" data-k="classroom"><span><b>ตรวจห้องเรียน</b><small>The SMART Classroom</small></span><span class="go">›</span></button>
       </div>
+      <div id="dstats" class="hr-stats"></div>
+      </div>
 `;
     bindQ(); bindDrafts();
+    S.wk = S.wk || 'classroom'; let firstWall = true;
+    const drawWall = (r, cnt) => {
+      const el = document.getElementById('wall'); if (!el) return;
+      const L = CR.LEVELS, RM = CR.ROOMS, k = S.wk, st = {};
+      if (r) { r.inspections.forEach(x => { if (x.kind === k) st[x.level + '|' + x.room] = 'd'; }); r.unavail.forEach(x => { if (x.kind === k) st[x.level + '|' + x.room] = 'u'; }); }
+      const n = r ? Object.keys(st).length : (cnt ? (Number(cnt[k]) || 0) + (Number(cnt['un' + k]) || 0) : null);
+      let cells = '', i = 0;
+      L.forEach(l => { cells += `<span class="wl">ม.${l}</span>`; for (let m = 1; m <= RM; m++) { const v = st[l + '|' + m] || ''; cells += `<button type="button" class="wc ${v}" style="--i:${i++}" data-l="${l}" data-r="${m}" aria-label="ม.${l}/${m} ${v === 'd' ? 'ตรวจแล้ว' : v === 'u' ? 'ตรวจไม่ได้' : 'ยังไม่ตรวจ'}"></button>`; } });
+      el.innerHTML = `<div class="wh"><div class="wn">${n == null ? '-' : n >= 72 ? 'ครบ' : n}<small>${n != null && n < 72 ? '/72' : ''}</small></div><div class="wt"><button type="button" data-k="classroom" class="${k === 'classroom' ? 'on' : ''}">ห้องเรียน</button><button type="button" data-k="zone" class="${k === 'zone' ? 'on' : ''}">เขตพื้นที่</button></div></div>
+        <div class="wg${firstWall ? ' in' : ''}">${cells}</div><div class="wk"><span><i class="wc d"></i>ตรวจแล้ว</span><span><i class="wc u"></i>ตรวจไม่ได้</span><span><i class="wc"></i>ยังไม่ตรวจ</span></div>`;
+      firstWall = false;
+      el.querySelectorAll('.wt button').forEach(b => b.onclick = () => { S.wk = b.dataset.k; drawWall(r, cnt); });
+      el.querySelectorAll('.wc[data-l]').forEach(b => b.onclick = () => { S.kind = k; S.level = b.dataset.l; S._resume = b.classList.contains('d') || b.classList.contains('u') ? null : b.dataset.r; setTab(k); enterLevel(); });
+    };
+    drawWall(null, null);
     const loadStats = async () => {
       const d = S.date; let r = null, old = false;
       try { const x = await cached('ds|' + d, 'dayStats', { date: d }); r = x.d; old = x.old; } catch (e) { r = null; }
-      if (d !== S.date || !document.getElementById('stats')) return;
-      const b = document.querySelectorAll('#stats b'); const f = (n, u) => (n = Number(n) || 0, u = Number(u) || 0, n + u >= 72) ? '<i class="ok">ครบ</i>' : (n + u) + '/72';
+      if (d !== S.date || !document.getElementById('wall')) return;
       if (r && r.inspections) {
-        const c = k => r.inspections.filter(x => x.kind === k).length, u = k => r.unavail.filter(x => x.kind === k).length;
-        b[0].innerHTML = f(c('classroom'), u('classroom')); b[1].innerHTML = f(c('zone'), u('zone'));
+        drawWall(r, null);
         const box = document.getElementById('dstats'); if (box) { box.innerHTML = statsPanel(r, old); bindStats(); }
-      } else api('dayCount', { date: d }).then(q => { if (d !== S.date || !document.getElementById('stats')) return; b[0].innerHTML = f(q.classroom, q.unClassroom); b[1].innerHTML = f(q.zone, q.unZone); }).catch(() => {});
+      } else api('dayCount', { date: d }).then(q => { if (d !== S.date || !document.getElementById('wall')) return; drawWall(null, q); }).catch(() => {});
     };
     loadStats();
     const holNote = () => { const h = ((S.init && S.init.holidays) || []).find(x => x.d === S.date); const el = document.getElementById('hol'); if (el) el.innerHTML = h ? '<div class="note" style="margin-top:8px"><b>วันนี้เป็นวันหยุด / ไม่มีการตรวจ</b>' + (h.r ? ' (' + esc(h.r) + ')' : '') + '</div>' : ''; };

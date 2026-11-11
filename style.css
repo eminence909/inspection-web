@@ -616,3 +616,45 @@ html[data-theme=light] .hero{--ink:#141416;--mut:#5b5b63;color:#141416}
 .mcard{flex-direction:row!important;align-items:center!important;justify-content:space-between!important}
 .mcard>span:first-child{text-align:left;flex:1;min-width:0}
 .eyebrow{display:none}
+
+/* ===== ผังห้อง 72 ช่อง (พระเอกของหน้าแรก) ===== */
+body{font-weight:400}
+.muted,.hero p,small{font-weight:300}
+.note,html[data-theme=light] .note,html[data-theme=light] .note.bad{background:none}
+.note.drafts .chip,html[data-theme=light] .note.drafts .chip{background:none;border-color:var(--hair)}
+.mcard b,.hero h1{font-weight:800}
+.home{display:block}
+.wall{margin:0 0 24px}
+.wh{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;border-top:2px solid var(--ink);padding-top:14px}
+.wn{font-family:var(--serif);font-weight:800;font-size:clamp(64px,22vw,96px);line-height:.9;letter-spacing:-.03em}
+.wn small{font-size:.38em;font-weight:300;letter-spacing:0;margin-left:4px;color:var(--mut)}
+.wt{display:flex;gap:16px;padding-bottom:6px}
+.wt button{font:inherit;font-size:15px;background:none;border:0;border-bottom:2px solid transparent;color:var(--mut);padding:4px 0;cursor:pointer}
+.wt button.on{color:var(--ink);border-bottom-color:var(--ink);font-weight:700}
+.wg{display:grid;grid-template-columns:30px repeat(12,1fr);gap:3px;margin-top:16px;align-items:center}
+.wl{font-size:12px;color:var(--mut);font-weight:500}
+.wc{aspect-ratio:1;padding:0;border:1px solid var(--hair);background:none;cursor:pointer;min-width:0}
+.wc.d{background:var(--ink);border-color:var(--ink)}
+.wc.u{border-color:var(--mut);background:repeating-linear-gradient(135deg,var(--mut) 0 1px,transparent 1px 5px)}
+.wc:hover{border-color:var(--ink)}
+.wc:focus-visible,.wt button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.wk{display:flex;gap:18px;margin-top:12px;font-size:12.5px;color:var(--mut);flex-wrap:wrap}
+.wk span{display:inline-flex;align-items:center;gap:6px}
+.wk .wc{width:12px;height:12px;aspect-ratio:auto;cursor:default;display:inline-block}
+@keyframes cellIn{from{opacity:0;transform:scale(.4)}to{opacity:1;transform:none}}
+.wg.in .wc{animation:cellIn .35s cubic-bezier(.2,.7,.2,1) both;animation-delay:calc(var(--i)*9ms)}
+@media(prefers-reduced-motion:reduce){.wg.in .wc{animation:none}}
+.hl-date{margin-top:0}
+
+/* จอใหญ่: จัดไม่สมมาตร ซ้าย = หัวเรื่อง/เมนู ขวา = ผัง */
+@media(min-width:1000px){
+  body.hasnav main:has(.home){padding-left:56px;padding-right:56px}
+  .home{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);column-gap:72px;align-items:start;grid-template-areas:"hero wall" "date wall" "menu wall" "menu stats"}
+  .hl-hero{grid-area:hero;margin-bottom:28px}
+  .hl-date{grid-area:date}
+  .hl-menu{grid-area:menu;margin-top:12px}
+  .wall{grid-area:wall;margin-top:0}
+  .hr-stats{grid-area:stats}
+  .hero h1{font-size:clamp(48px,4.4vw,72px)}
+  .wn{font-size:128px}
+}
