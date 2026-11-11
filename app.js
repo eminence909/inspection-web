@@ -141,18 +141,17 @@
     if (my !== NAV) return;
     S.date = S.date || S.init.today;
     $app.innerHTML = qBanner() + draftBanner() + `
-      <section class="hero"><div class="bigword">CLEAN</div>
-        <div class="eyebrow">สภานักเรียน · ${esc(S.init.schoolName || '')}</div>
+      <section class="hero">
         <h1>ตรวจห้องเรียน<br>และเขตพื้นที่</h1>
-        <p>${esc(S.init.term || '')}</p></section>
+        <p>${esc(S.init.term || '')}<br>สภานักเรียน ${esc(S.init.schoolName || '')}</p></section>
       <div class="stats" id="stats"><div><b>-</b><span>ตรวจห้องเรียน</span></div><div><b>-</b><span>ตรวจเขตพื้นที่</span></div><div><b>72</b><span>ห้องทั้งหมด</span></div><div><b>100</b><span>คะแนนเต็ม</span></div></div>
       <div id="dstats"></div>
       <div class="card"><label for="dt">วันที่ตรวจ</label>
         <input type="date" id="dt" value="${S.date}" max="${S.init.today}">
         <div class="muted" id="dtl" style="margin-top:6px">${thDate(S.date)}</div><div id="hol"></div></div>
       <div class="menu">
-        <button class="mcard" data-k="zone"><span class="go">${IC.arrow}</span><span class="ic">${IC.leaf}</span><span><b>ตรวจเขตพื้นที่</b><small>Sripisai Clean Zone</small></span></button>
-        <button class="mcard" data-k="classroom"><span class="go">${IC.arrow}</span><span class="ic">${IC.school}</span><span><b>ตรวจห้องเรียน</b><small>The SMART Classroom</small></span></button>
+        <button class="mcard" data-k="zone"><span><b>ตรวจเขตพื้นที่</b><small>Sripisai Clean Zone</small></span><span class="go">›</span></button>
+        <button class="mcard" data-k="classroom"><span><b>ตรวจห้องเรียน</b><small>The SMART Classroom</small></span><span class="go">›</span></button>
       </div>
 `;
     bindQ(); bindDrafts();

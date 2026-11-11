@@ -515,3 +515,104 @@ html[data-theme=light] main .tabs{background:rgba(243,243,241,.92)}
 @media(max-width:520px){#logout{padding:5px 11px!important;font-size:12px!important}.top{gap:8px;padding:10px 14px}}
 .btn.danger{background:var(--r);color:#fff}.btn.danger:hover{background:#d4574a}
 .drw{display:inline-flex;gap:2px}.drw .chip.dr{border-top-right-radius:0;border-bottom-right-radius:0}.drw .chip.drx{border-top-left-radius:0;border-bottom-left-radius:0;padding:5px 11px;border-left:0;font-size:1.1em;line-height:1}
+
+/* ===================================================================
+   PRINT: แนวสิ่งพิมพ์/ตาราง — มุมเหลี่ยม เส้นบางแทนกรอบ ตัวอักษรหัวข้อใหญ่หนา
+   (ทับทุกอย่างข้างบน ไม่มีลูกกลม ไล่เฉด แสงเรือง หรือปุ่มทรงเม็ดยา)
+   =================================================================== */
+:root{--sans:'IBM Plex Sans Thai','Sarabun','Noto Sans Thai',Tahoma,system-ui,sans-serif;--serif:'Anuphan','IBM Plex Sans Thai','Noto Sans Thai',sans-serif;--r-card:0;--r-btn:0;--hair:rgba(255,255,255,.16)}
+html[data-theme=light]{--hair:rgba(0,0,0,.22)}
+body,html[data-theme=light] body{background:var(--bg)}
+body::before{display:none}
+*{border-radius:0!important}
+.rip{display:none!important}
+h1,h2,h3,.hero h1,.mcard b,.stats b,.tot{font-family:var(--serif)}
+h2{font-weight:800;font-size:22px;letter-spacing:0}
+label{letter-spacing:0;font-weight:500}
+.top b{font-family:var(--serif);font-weight:800;letter-spacing:0}
+.thm,.icon,.adminlink,.fsz,.net{border-radius:0!important}
+
+/* หน้าแรก: หัวเรื่องใหญ่ ไม่มีกรอบ */
+.hero,html[data-theme=light] .hero{background:none!important;border:0;border-top:2px solid var(--ink);border-bottom:1px solid var(--hair);padding:22px 0 20px;min-height:0;color:var(--ink);margin-bottom:0}
+
+.hero::after{display:none!important}
+.hero h1,html[data-theme=light] .hero h1{font-family:var(--serif);font-weight:800;font-size:clamp(44px,15vw,72px);line-height:1.02;letter-spacing:-.02em;margin:0 0 16px;color:var(--ink);text-shadow:none}
+.hero p{max-width:none;font-size:15px;line-height:1.5;color:var(--mut);margin:0}
+.stats{border:0;border-bottom:1px solid var(--hair);background:none;margin:0 0 22px}
+html[data-theme=light] .stats{background:none;border:0;border-bottom:1px solid var(--hair);box-shadow:none}
+.stats div{border-right:1px solid var(--hair);padding:14px 8px 12px}
+.stats div:first-child{padding-left:0}.stats div:last-child{border-right:0}
+.stats b{font-weight:800;font-size:34px;letter-spacing:-.02em}
+.stats span{font-size:12.5px;letter-spacing:0}
+@media(max-width:480px){.stats b{font-size:26px}}
+
+/* พื้นผิวทั่วไป: ไม่มีกล่อง มีแค่เส้นบน */
+.card,html[data-theme=light] .card{background:none;border:0;border-top:1px solid var(--ink);box-shadow:none;padding:14px 0 18px}
+.rsec,html[data-theme=light] .rsec{background:none;border:0;border-top:1px solid var(--ink);padding:14px 0}
+.note{border-radius:0;border:0;border-left:3px solid var(--o)}
+.note.bad{border-left-color:var(--r)}
+
+/* เมนูหลัก = แถวตารางตัวใหญ่ กดแล้วสลับสีหมึก */
+.menu{display:block;gap:0;border-top:2px solid var(--ink)}
+.mcard,html[data-theme=light] .mcard{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;width:100%;min-height:0;padding:22px 0 20px;background:none;border:0;border-bottom:1px solid var(--hair);box-shadow:none;text-align:left;color:var(--ink);transform:none!important;transition:background .15s,color .15s,padding .15s}
+.mcard::before,.mcard::after{display:none!important}
+.mcard b{font-weight:800;font-size:clamp(30px,9vw,44px);line-height:1.08;letter-spacing:-.01em;margin:0;display:block}
+.mcard small{display:block;margin-top:6px;font-size:14px;color:var(--mut);transition:color .15s}
+.mcard .go,html[data-theme=light] .mcard .go{position:static;border:0;background:none;width:auto;height:auto;font-family:var(--serif);font-size:44px;font-weight:300;line-height:1;color:var(--ink);transition:transform .15s}
+.mcard:hover,.mcard:active,html[data-theme=light] .mcard:hover{background:var(--ink);color:var(--bg);padding-left:14px;padding-right:14px;border-color:var(--ink)}
+.mcard:hover small,.mcard:hover .go{color:var(--bg);background:none}
+.mcard:hover .go{transform:translateX(4px)}
+.rowbtn,html[data-theme=light] .rowbtn{background:none;border:0;border-bottom:1px solid var(--hair);padding:16px 0;box-shadow:none}
+.rowbtn:hover,html[data-theme=light] .rowbtn:hover{background:var(--ink);color:var(--bg);border-color:var(--ink);padding-left:12px;padding-right:12px}
+.rowbtn .ic,.mcard .ic{display:none}
+
+/* ปุ่ม: เหลี่ยม ไม่มีเอฟเฟกต์ */
+.btn{border:1px solid var(--ac);font-weight:600;letter-spacing:0;padding:13px 20px}
+.btn:hover,html[data-theme=light] .btn:hover{background:transparent;color:var(--ink);border-color:var(--ink)}
+.btn.sec,html[data-theme=light] .btn.sec{background:transparent;border:1px solid var(--ink);color:var(--ink)}
+.btn.sec:hover,html[data-theme=light] .btn.sec:hover{background:var(--ink);color:var(--bg)}
+.btn.warn,html[data-theme=light] .btn.warn{background:transparent;border:1px solid var(--hair);color:var(--ink)}
+.btn.danger{border-color:var(--r)}
+
+/* แท็บ/เมนู: ขีดเส้นใต้ ไม่ใช่เม็ดยา */
+#nav,main .tabs,html[data-theme=light] #nav,html[data-theme=light] main .tabs{gap:22px;padding:0 16px;background:var(--bg);backdrop-filter:none;-webkit-backdrop-filter:none;border-bottom:1px solid var(--hair)}
+#nav button,main .tabs button{padding:12px 0;border:0;border-bottom:2px solid transparent;background:none;color:var(--mut);font-size:15px;font-weight:500;margin-bottom:-1px}
+#nav button.on,main .tabs button.on,html[data-theme=light] #nav button.on,html[data-theme=light] main .tabs button.on{background:none;color:var(--ink);border-bottom-color:var(--ink);font-weight:700}
+@media(min-width:900px){
+  #nav,html[data-theme=light] #nav,main.wide #tabs,html[data-theme=light] main.wide #tabs{gap:0;padding:22px 0;background:var(--bg);border-bottom:0;border-right:1px solid var(--hair)}
+  #nav::before{letter-spacing:0;text-transform:none;font-size:13px}
+  #nav button,main.wide #tabs button{padding:12px 20px;border-bottom:0;border-left:3px solid transparent;margin:0;text-align:left;font-size:16px}
+  #nav button.on,main.wide #tabs button.on,html[data-theme=light] #nav button.on,html[data-theme=light] main.wide #tabs button.on{background:none;border-left-color:var(--ink);border-bottom:0}
+}
+.tabs button,.rtabs button,.chip,.hchip,.pchip{border:1px solid var(--hair);background:none}
+.chip.on,.tabs button.on,.rtabs button.on,.hchip.on,.opt.on,html[data-theme=light] .chip.on,html[data-theme=light] .rtabs button.on,html[data-theme=light] .hchip.on,html[data-theme=light] .opt.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+main .tabs button.on{background:none;color:var(--ink);border:0;border-bottom:2px solid var(--ink)}
+.sug .chip,html[data-theme=light] .sug .chip{background:none}
+
+/* ช่องกรอก */
+input[type=date],input[type=text],input[type=month],input[type=password],select,textarea,html[data-theme=light] input[type=date],html[data-theme=light] input[type=text],html[data-theme=light] input[type=month],html[data-theme=light] input[type=password],html[data-theme=light] select,html[data-theme=light] textarea{background:none;border:0;border-bottom:1px solid var(--ink)}
+table.dt input,html[data-theme=light] table.dt input{border:1px solid var(--hair)}
+
+/* ช่องเลือกห้อง/คะแนน */
+.tile,html[data-theme=light] .tile{background:none;border:1px solid var(--hair);font-family:var(--serif);font-weight:700}
+.tile.done,.tile.sel,html[data-theme=light] .tile.done,html[data-theme=light] .tile.sel{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.tile.un{border-style:dashed}
+.item,html[data-theme=light] .item{background:none;border:0;border-bottom:1px solid var(--hair);padding:14px 0}
+.opt,html[data-theme=light] .opt{background:none;border:1px solid var(--hair)}
+.cat,html[data-theme=light] .cat{background:none;border:0;border-top:2px solid var(--ink);border-left:0;padding:12px 0;font-family:var(--serif);font-weight:800;font-size:17px}
+.tot{font-weight:800;font-size:32px}
+.badge,.gno{background:none;border:1px solid var(--hair);padding:1px 8px}
+.scroll,html[data-theme=light] .scroll{border:0;border-top:1px solid var(--ink);border-bottom:1px solid var(--hair);background:none}
+table.dt th,html[data-theme=light] table.dt th{background:none;border-bottom:2px solid var(--ink);font-weight:700}
+.rbox,html[data-theme=light] .rbox{background:none;border:1px solid var(--hair)}
+.prog,.bt{height:4px}.prog i,.bt i,html[data-theme=light] .prog i,html[data-theme=light] .bt i{background:var(--ink)}
+.prow,html[data-theme=light] .prow{background:none;border:0;border-bottom:1px solid var(--hair)}
+.prow.r1{border-color:var(--ink)}
+.mdl.gold::after,.prow.r1 .rk::after{display:none}
+.okfx,html[data-theme=light] .okfx{background:var(--bg);border:2px solid var(--ink);box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none}
+#toast,html[data-theme=light] #toast{background:var(--ink);color:var(--bg)}
+.sk i{background:var(--card2);animation:none;border:0}
+html[data-theme=light] .hero{--ink:#141416;--mut:#5b5b63;color:#141416}
+.mcard{flex-direction:row!important;align-items:center!important;justify-content:space-between!important}
+.mcard>span:first-child{text-align:left;flex:1;min-width:0}
+.eyebrow{display:none}
