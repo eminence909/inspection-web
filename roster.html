@@ -10,8 +10,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Thai:wght@400;600;700&family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20261111f">
-<script src="font.js?v=20261111f"></script>
+<link rel="stylesheet" href="style.css?v=20261111g">
+<script src="font.js?v=20261111g"></script>
 </head>
 <body>
 <header class="top">
@@ -20,12 +20,12 @@
 </header>
 <main id="app"></main>
 <div id="toast" role="status"></div>
-<script src="config.js?v=20261111f"></script>
-<script src="criteria.js?v=20261111f"></script>
-<script src="calc.js?v=20261111f"></script>
-<script src="summary.js?v=20261111f"></script>
-<script src="roster.js?v=20261111f"></script>
-<script src="lazy.js?v=20261111f"></script>
+<script src="config.js?v=20261111g"></script>
+<script src="criteria.js?v=20261111g"></script>
+<script src="calc.js?v=20261111g"></script>
+<script src="summary.js?v=20261111g"></script>
+<script src="roster.js?v=20261111g"></script>
+<script src="lazy.js?v=20261111g"></script>
 <script>
 (function () {
   const $app = document.getElementById('app');
@@ -42,8 +42,11 @@
     const go = async () => { PIN = document.getElementById('p').value; try { await api('rosterLogin'); try { sessionStorage.setItem('rpin', PIN); } catch (e) {} start(); } catch (e) { PIN = ''; toast(e.message); } };
     document.getElementById('ok').onclick = go; document.getElementById('p').onkeydown = e => { if (e.key === 'Enter') go(); };
   }
+  const setTopH = () => { const h = document.querySelector('.top'); if (h) document.documentElement.style.setProperty('--toph', h.getBoundingClientRect().height + 'px'); }; window.addEventListener('resize', setTopH);
   function start() {
-    $app.innerHTML = '<div class="card"><div class="tb"><div><label>ดาวน์โหลดใบเวร (วันที่ที่เลือกในช่องด้านล่าง)</label></div><button class="btn warn" id="xpdf" style="margin:0;flex:0 0 110px">PDF ใบเวร</button><button class="btn warn" id="xjpg" style="margin:0;flex:0 0 110px">รูปใบเวร</button></div></div><div id="ed"></div><div id="st"></div>';
+    setTopH();
+    $app.innerHTML = '<div class="tabs sect" id="rtabs"><button data-s="ed" class="on">จัดเวร</button><button data-s="dl">ดาวน์โหลดใบเวร</button><button data-s="st">สถิติ</button></div><div class="card" id="dl" hidden><div class="tb"><div><label>ดาวน์โหลดใบเวร (วันที่ที่เลือกในช่องด้านล่าง)</label></div><button class="btn warn" id="xpdf" style="margin:0;flex:0 0 110px">PDF ใบเวร</button><button class="btn warn" id="xjpg" style="margin:0;flex:0 0 110px">รูปใบเวร</button></div></div><div id="ed"></div><div id="st" hidden></div>';
+    document.querySelectorAll('#rtabs button').forEach(b => b.onclick = () => { document.querySelectorAll('#rtabs button').forEach(x => x.classList.toggle('on', x === b)); ['ed', 'dl', 'st'].forEach(id => { document.getElementById(id).hidden = id !== b.dataset.s; }); window.scrollTo(0, 0); });
     let cur = today(); const dl = fn => { toast('กำลังสร้างไฟล์...'); window.loadPdfStack().then(() => window.PDFX[fn]({ date: cur, api })).then(() => toast('เสร็จแล้ว')).catch(e => toast(e.message)); };
     document.getElementById('xpdf').onclick = () => dl('roster'); document.getElementById('xjpg').onclick = () => dl('rosterImage');
     window.ROSTER.mountStats(document.getElementById('st'), { api, date: cur, toast });

@@ -7,6 +7,7 @@
 
   // ----- เครื่องหมายถูกตอนส่งสำเร็จ -----
   FX.done = function () {
+    try { if (navigator.vibrate) navigator.vibrate([18, 50, 18]); } catch (e) {}
     if (RM) return;
     var o = document.createElement('div'); o.className = 'okfx';
     o.innerHTML = '<svg viewBox="0 0 80 80"><circle cx="40" cy="40" r="34"/><path d="M24 41l11 11 21-23"/></svg>';

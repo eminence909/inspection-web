@@ -490,3 +490,26 @@ html[data-theme=light] .okfx{background:rgba(255,255,255,.92)}
 html[data-theme=light] .okfx svg{stroke:#000}
 html[data-theme=light] .stats b{color:var(--ink)}
 @media(max-width:520px){.stick .top .adminlink{display:none}}
+
+/* โครงโหลด */
+.sk{display:grid;gap:14px}
+.sk i{display:block;border-radius:var(--r-card);border:1px solid var(--hair);background:linear-gradient(100deg,var(--card) 30%,var(--card2) 50%,var(--card) 70%);background-size:300% 100%;animation:skm 1.4s ease-in-out infinite}
+@keyframes skm{from{background-position:100% 0}to{background-position:0 0}}
+
+/* ===== แอดมิน/จัดเวร: แท็บเป็นแถบเลื่อน (มือถือ) และเมนูซ้าย (จอใหญ่) ===== */
+main .tabs{display:flex;flex-wrap:nowrap;gap:6px;overflow-x:auto;scrollbar-width:none;position:sticky;top:var(--toph,62px);z-index:4;margin:-18px -16px 14px;padding:10px 16px;background:rgba(10,10,11,.88);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--hair);-webkit-overflow-scrolling:touch}
+main .tabs::-webkit-scrollbar{display:none}
+main .tabs button{flex:0 0 auto;min-width:0;padding:7px 15px;font-size:14px;color:var(--mut);background:transparent;border:1px solid transparent;border-radius:999px;white-space:nowrap}
+main .tabs button:hover{color:var(--ink)}
+main .tabs button.on{background:var(--ac);color:var(--ac-ink);border-color:var(--ac)}
+html[data-theme=light] main .tabs{background:rgba(243,243,241,.92)}
+@media(min-width:900px){
+  main.wide:has(#tabs){margin-left:0;padding-left:calc(220px + 28px);max-width:none}
+  main.wide #tabs{position:fixed;left:0;top:var(--toph,62px);bottom:0;width:210px;margin:0;padding:22px 14px;flex-direction:column;gap:2px;overflow:visible;border-bottom:0;border-right:1px solid var(--hair);background:rgba(10,10,11,.6)}
+  main.wide #tabs button{text-align:left;border-radius:8px;border:0;border-left:2px solid transparent;padding:11px 14px;font-size:15px}
+  main.wide #tabs button.on{background:rgba(255,255,255,.08);color:#fff;border-left-color:#fff}
+  html[data-theme=light] main.wide #tabs{background:rgba(255,255,255,.6)}
+  html[data-theme=light] main.wide #tabs button.on{background:rgba(0,0,0,.07);color:#000;border-left-color:#000}
+}
+.top .ttl small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:520px){#logout{padding:5px 11px!important;font-size:12px!important}.top{gap:8px;padding:10px 14px}}

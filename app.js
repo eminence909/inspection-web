@@ -50,7 +50,7 @@
   window.addEventListener('online', () => flushQueue().then(() => { if (S.level && S.status && document.getElementById('img')) enterLevel(); }));
   const qBanner = () => getQ().length ? `<div class="note" style="margin-bottom:12px;display:flex;gap:10px;align-items:center"><span style="flex:1">มีผลตรวจรอส่ง ${getQ().length} รายการ (ส่งอัตโนมัติเมื่อมีสัญญาณ)</span><button class="btn sec" id="qs" style="margin:0;width:auto;padding:8px 14px">ส่งตอนนี้</button><button class="btn sec" id="qx" style="margin:0;width:auto;padding:8px 14px">ไฟล์สำรอง</button></div>` : '';
   function bindQ() { const b = document.getElementById('qs'); if (b) b.onclick = () => flushQueue().then(n => { if (!n) toast('ยังส่งไม่ได้ ลองใหม่เมื่อมีสัญญาณ'); }); const x = document.getElementById('qx'); if (x) x.onclick = exportQueue; netPill(); }
-  function loading() { $app.innerHTML = '<div class="spin">กำลังโหลด...</div>'; }
+  function loading() { $app.innerHTML = '<div class="sk" role="status" aria-label="กำลังโหลด"><i style="height:120px"></i><i style="height:64px"></i><i style="height:160px"></i></div>'; }
   function fail(e) { toast(e.message || 'เกิดข้อผิดพลาด'); console.error(e); }
   // ---------- แถบเมนูหลัก (บนมือถือ = แถบบน / จอใหญ่ = เมนูซ้าย) ----------
   const TABS = [['home', 'หน้าหลัก'], ['zone', 'เขตพื้นที่'], ['classroom', 'ห้องเรียน'], ['roster', 'ดูเวร'], ['results', 'ผลประกาศ'], ['more', 'เพิ่มเติม']];

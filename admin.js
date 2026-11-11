@@ -42,7 +42,10 @@
   document.getElementById('logout').onclick = () => { PIN = ''; try { sessionStorage.removeItem('pin'); } catch (e) {} login(); };
 
   // ---------- shell ----------
+  function setTopH() { const h = document.querySelector('.top'); if (h) document.documentElement.style.setProperty('--toph', h.getBoundingClientRect().height + 'px'); }
+  window.addEventListener('resize', setTopH); setTopH();
   function shell() {
+    setTopH();
     document.getElementById('logout').hidden = false;
     const tabs = [['daily', 'ผลรายวัน / แก้ไข'], ['weekly', 'สรุปรายสัปดาห์'], ['monthly', 'สรุปรายเดือน'], ['insights', 'ภาพรวม / แจ้งเตือน'], ['room', 'ดูรายห้อง'], ['roster', 'เวร / สถานะการส่ง'], ['history', 'ประวัติแก้ไขคะแนน'], ['settings', 'ตั้งค่า']];
     $app.innerHTML = `<div class="tabs" id="tabs">${tabs.map(t => `<button data-t="${t[0]}" class="${st.tab === t[0] ? 'on' : ''}">${t[1]}</button>`).join('')}</div>
