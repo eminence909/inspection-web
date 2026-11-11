@@ -114,12 +114,14 @@
   }
   function draftBanner() {
     const d = findDrafts(); if (!d.length) return '';
-    return '<div class="note drafts"><b>มีใบตรวจที่ยังไม่ได้ส่ง</b><div class="sug" style="margin-top:8px">' + d.map(x => `<button type="button" class="chip dr" data-k="${x.kind}" data-d="${x.date}" data-l="${x.level}" data-r="${x.room}">ม.${x.level}/${x.room} · ${x.kind === 'classroom' ? 'ห้องเรียน' : 'เขต'} · ${thDate(x.date).replace(/^วัน\S+ที่ /, '')} (${x.n}/${x.total})</button>`).join('') + '</div></div>';
+    return '<div class="note drafts"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><b>มีใบตรวจที่ยังไม่ได้ส่ง</b><button type="button" class="chip" id="drAll">ล้างทั้งหมด</button></div><div class="sug" style="margin-top:8px">' + d.map(x => `<span class="drw"><button type="button" class="chip dr" data-k="${x.kind}" data-d="${x.date}" data-l="${x.level}" data-r="${x.room}">ม.${x.level}/${x.room} · ${x.kind === 'classroom' ? 'ห้องเรียน' : 'เขต'} · ${thDate(x.date).replace(/^วัน\S+ที่ /, '')} (${x.n}/${x.total})</button><button type="button" class="chip drx" aria-label="ลบร่างนี้" data-k="${x.kind}" data-d="${x.date}" data-l="${x.level}" data-r="${x.room}">&times;</button></span>`).join('') + '</div></div>';
   }
   function bindDrafts() {
     $app.querySelectorAll('.dr').forEach(b => b.onclick = () => { S.kind = b.dataset.k; S.date = b.dataset.d; S.level = b.dataset.l; S._resume = b.dataset.r; setTab(S.kind); enterLevel(); });
+    $app.querySelectorAll('.drx').forEach(b => b.onclick = () => { if (!confirm('ลบร่างของ ม.' + b.dataset.l + '/' + b.dataset.r + ' ?')) return; try { localStorage.removeItem(['draft', b.dataset.k, b.dataset.d, b.dataset.l, b.dataset.r].join('|')); } catch (e) {} home(); });
+    const all = document.getElementById('drAll');
+    if (all) all.onclick = () => { if (!confirm('ล้างร่างที่ค้างทั้งหมดในเครื่องนี้ ?')) return; try { Object.keys(localStorage).filter(k => k.indexOf('draft|') === 0).forEach(k => localStorage.removeItem(k)); } catch (e) {} home(); };
   }
-  function clearDraftFor(r) { try { localStorage.removeItem(['draft', S.kind, S.date, S.level, r].join('|')); } catch (e) {} }
   function clearDraft() { try { localStorage.removeItem(draftKey()); } catch (e) {} }
 
   // ---------- 1 หน้าแรก ----------

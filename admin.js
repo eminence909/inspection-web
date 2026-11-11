@@ -432,6 +432,9 @@
         <label for="de">อีเมลที่รับสรุป (เว้นว่าง = อีเมลเจ้าของสคริปต์)</label><input type="text" id="de" value="${esc(cfg.digestEmail || '')}" placeholder="name@gmail.com">
         <div class="row" style="margin-top:8px"><button class="btn sec" id="des" style="margin:0">บันทึกอีเมล</button><button class="btn" id="aut" style="margin:0">เปิดใช้งาน</button></div>
         <div class="row" style="margin-top:8px"><button class="btn sec" id="bkn" style="margin:0">สำรองตอนนี้</button><button class="btn sec" id="dgn" style="margin:0">ส่งอีเมลทดสอบ</button></div></div>
+      <div class="card"><h2>ข้อมูลค้างในเครื่องนี้</h2>
+        <div class="muted">ร่างที่กรอกไม่เสร็จและผลที่รอส่ง (ตอนไม่มีสัญญาณ) เก็บไว้ในเครื่อง/เบราว์เซอร์ที่ใช้ตรวจเท่านั้น แอดมินดูของเครื่องอื่นไม่ได้ ต้องเปิดหน้านี้บนเครื่องนั้น</div>
+        <div id="ld" style="margin-top:10px"></div></div>
       <div class="card"><h2>ล้างข้อมูลทดสอบ</h2>
         <div class="muted">ใช้ก่อนเริ่มใช้งานจริงเพื่อลบผลตรวจที่ลองไว้ ระบบจะทำสำเนาทั้งชีตไว้ใน Drive ก่อนล้างทุกครั้ง ไม่แตะรายชื่อ รหัสผ่าน หรือค่าตั้งค่า</div>
         <div class="tb" style="margin-top:8px"><div><label for="cf">ตั้งแต่วันที่</label><input type="date" id="cf" max="${todayISO()}"></div><div><label for="ct">ถึงวันที่</label><input type="date" id="ct" max="${todayISO()}"></div></div>
@@ -466,6 +469,24 @@
       document.getElementById('des').onclick = () => api('adminSetConfig', { values: { digestEmail: document.getElementById('de').value.trim() } }).then(() => { toast('บันทึกอีเมลแล้ว'); auSt(); }).catch(fail);
       document.getElementById('bkn').onclick = () => { toast('กำลังสำรอง...'); api('adminBackupNow').then(r => toast('สำรองแล้วใน Drive')).catch(fail); };
       document.getElementById('dgn').onclick = () => { toast('กำลังส่ง...'); api('adminDigestNow').then(r => toast(r.sentTo ? 'ส่งอีเมลไปที่ ' + r.sentTo + ' แล้ว' : 'ไม่ได้ส่ง: ' + (r.skipped || ''))).catch(fail); };
+      // ----- ข้อมูลค้างในเครื่องนี้ -----
+      const drawLocal = () => {
+        const el = document.getElementById('ld'); if (!el) return;
+        let drafts = [], queue = [];
+        try { Object.keys(localStorage).filter(k => k.indexOf('draft|') === 0).forEach(k => { const [, kind, date, level, room] = k.split('|'); let sc = null; try { sc = JSON.parse(localStorage.getItem(k)); } catch (e) {} drafts.push({ k, kind, date, level, room, n: sc ? Object.keys(sc).length : 0 }); }); } catch (e) {}
+        try { queue = JSON.parse(localStorage.getItem('queue') || '[]'); } catch (e) {}
+        const kn = x => x === 'zone' ? 'เขตพื้นที่' : 'ห้องเรียน';
+        let h = '<h3>ร่างที่ยังไม่ส่ง (' + drafts.length + ')</h3>' + (drafts.length ? drafts.map((d, i) => `<div class="odi"><span>${kn(d.kind)} ม.${esc(d.level)}/${esc(d.room)} · ${thd(d.date)} <span class="muted">(กรอกแล้ว ${d.n} ข้อ)</span></span><button class="btn sec" data-dd="${i}" style="margin:0;padding:6px 12px">ลบ</button></div>`).join('') + '<button class="btn sec" id="ddall">ลบร่างทั้งหมด</button>' : '<div class="muted">ไม่มี</div>');
+        h += '<h3 style="margin-top:14px">ผลที่รอส่ง (' + queue.length + ')</h3>' + (queue.length ? queue.map((q, i) => { const p = q.params || {}; return `<div class="odi"><span>${kn(p.kind)} ม.${esc(p.level)}/${esc(p.room)} · ${p.date ? thd(p.date) : ''}</span><span style="display:flex;gap:6px"><button class="btn sec" data-qs="${i}" style="margin:0;padding:6px 12px">ส่งตอนนี้</button><button class="btn sec" data-qd="${i}" style="margin:0;padding:6px 12px">ลบ</button></span></div>`; }).join('') + '<button class="btn sec" id="qdall">ลบผลที่รอส่งทั้งหมด</button>' : '<div class="muted">ไม่มี</div>');
+        el.innerHTML = h;
+        el.querySelectorAll('[data-dd]').forEach(b => b.onclick = () => { if (confirm('ลบร่างนี้ ?')) { try { localStorage.removeItem(drafts[Number(b.dataset.dd)].k); } catch (e) {} drawLocal(); } });
+        const da = document.getElementById('ddall'); if (da) da.onclick = () => { if (confirm('ลบร่างทั้งหมดในเครื่องนี้ ?')) { drafts.forEach(d => { try { localStorage.removeItem(d.k); } catch (e) {} }); drawLocal(); } };
+        const save = q => { try { localStorage.setItem('queue', JSON.stringify(q)); } catch (e) {} drawLocal(); };
+        el.querySelectorAll('[data-qd]').forEach(b => b.onclick = () => { if (confirm('ลบผลที่รอส่งนี้ ? (จะไม่ถูกส่งเข้าชีต)')) save(queue.filter((_, i) => i !== Number(b.dataset.qd))); });
+        el.querySelectorAll('[data-qs]').forEach(b => b.onclick = async () => { const q = queue[Number(b.dataset.qs)]; b.disabled = true; try { await api(q.action, q.params); toast('ส่งแล้ว'); save(queue.filter(x => x !== q)); } catch (e) { b.disabled = false; fail(e); } });
+        const qa = document.getElementById('qdall'); if (qa) qa.onclick = () => { if (confirm('ลบผลที่รอส่งทั้งหมด ? (จะไม่ถูกส่งเข้าชีต)')) save([]); };
+      };
+      drawLocal();
       // ----- ล้างข้อมูลทดสอบ -----
       document.getElementById('cc').onclick = async () => {
         const f = document.getElementById('cf').value, t = document.getElementById('ct').value, out = document.getElementById('co');
