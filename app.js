@@ -512,7 +512,7 @@
     });
     h += `</table><div class="tot">รวมทั้งหมด ${t.total} / 100</div></div>`;
     const vals = def.categories.flatMap(c => c.items.map(i => ({ v: Number(S.scores[i.id]), max: i.max })));
-    S.anom = '';
+    S.anom = ''; S.soft = false;
     if (!viewOnly) {
       if (vals.every(x => x.v === 0)) S.anom = 'คุณให้ 0 คะแนนทุกข้อ';
       else if (vals.every(x => x.v === x.max)) S.anom = 'คุณให้คะแนนเต็มทุกข้อ';
@@ -523,10 +523,14 @@
         getQ().forEach(q => { const p = q.params || {}; if (p.kind === S.kind && p.date === S.date && String(p.level) === String(S.level) && String(p.room) !== String(S.room) && p.scores) others[p.room] = K.dailyTotals(S.kind, p.scores).total; });
         const tv = Object.keys(others).map(k => others[k]);
         if (tv.length >= 2 && tv.every(x => x === t.total)) S.anom = 'คะแนนรวม ' + t.total + ' เท่ากับห้องอื่นที่ตรวจไปแล้วทุกห้อง (' + tv.length + ' ห้อง) ในชั้นนี้';
+        else { // ซ้ำกับบางห้อง: ถามให้แน่ใจเท่านั้น ไม่ห้ามส่ง
+          const same = Object.keys(others).filter(k => others[k] === t.total).sort((x, y) => Number(x) - Number(y));
+          if (same.length) { S.anom = 'คะแนนรวม ' + t.total + ' ซ้ำกับห้อง ' + same.map(k => 'ม.' + S.level + '/' + k).join(', '); S.soft = true; }
+        }
       }
     }
     S.confirmAnom = false;
-    if (S.anom) h = `<div class="note bad" style="margin-bottom:12px"><b>${S.anom}</b><br>กรุณาตรวจสอบอีกครั้งว่าถูกต้อง ถ้าถูกต้องกดยืนยันส่งสองครั้ง</div>` + h;
+    if (S.anom) h = `<div class="note${S.soft ? '' : ' bad'}" style="margin-bottom:12px"><b>${S.anom}</b><br>${S.soft ? 'ไม่ได้ห้ามส่ง แค่ถามให้แน่ใจว่าตรวจจริงและคะแนนบังเอิญเท่ากัน ถ้าถูกต้องกดยืนยันส่งอีกครั้ง' : 'กรุณาตรวจสอบอีกครั้งว่าถูกต้อง ถ้าถูกต้องกดยืนยันส่งสองครั้ง'}</div>` + h;
     $app.innerHTML = h;
     if (viewOnly) return bar('<button class="btn sec" id="ok" style="margin:0">กลับ</button>'), document.getElementById('ok').onclick = rooms;
     bar('<button class="btn sec" id="bk" style="margin:0;flex:1">แก้ไข</button><button class="btn" id="sb" style="margin:0;flex:2">ยืนยันส่งผลตรวจ</button>');
@@ -535,7 +539,7 @@
   }
   async function submit() {
     const sb = document.getElementById('sb');
-    if (S.anom && !S.confirmAnom) { S.confirmAnom = true; sb.textContent = 'ยืนยันอีกครั้ง (' + S.anom + ')'; toast('คะแนนผิดปกติ กดยืนยันอีกครั้งเพื่อส่ง'); return; }
+    if (S.anom && !S.confirmAnom) { S.confirmAnom = true; sb.textContent = 'ยืนยันอีกครั้ง (' + S.anom + ')'; toast(S.soft ? 'คะแนนซ้ำกับห้องอื่น ถ้าถูกต้องกดยืนยันอีกครั้งเพื่อส่ง' : 'คะแนนผิดปกติ กดยืนยันอีกครั้งเพื่อส่ง'); return; }
     sb.disabled = true; sb.textContent = 'กำลังส่ง...';
     const base = { kind: S.kind, date: S.date, level: S.level, room: S.room, scores: S.scores };
     try {
