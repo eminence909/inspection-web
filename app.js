@@ -251,7 +251,7 @@
       row('guideBtn', IC.help, 'วิธีการใช้งานเว็บนี้') +
       row('offBtn', IC.list, 'เตรียมใช้งานออฟไลน์', 'โหลดข้อมูลวันนี้ไว้ในเครื่อง ใช้ตอนไม่มีสัญญาณ') +
       row('lineBtn', IC.help, 'ติดต่อแอดมิน / แจ้งปัญหา (ไลน์)') +
-      '<div style="text-align:center;margin-top:16px"><a href="roster.html" class="muted">สำหรับผู้จัดเวร</a></div>';
+      '<div style="text-align:center;margin-top:16px;display:flex;gap:18px;justify-content:center"><a href="roster.html" class="muted">สำหรับผู้จัดเวร</a><a href="admin.html" class="muted" target="_blank" rel="noopener">สำหรับแอดมิน</a></div>';
     bindQ();
     document.getElementById('guideBtn').onclick = viewGuide;
     document.getElementById('offBtn').onclick = prepareOffline;

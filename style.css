@@ -415,3 +415,78 @@ details summary{color:var(--ink)}
 @keyframes okOut{to{opacity:0;transform:scale(.92)}}
 @media(prefers-reduced-motion:reduce){.rip,.okfx{display:none!important}}
 .note.drafts{margin-bottom:12px}.note.drafts .chip{background:rgba(217,164,65,.14);border-color:rgba(217,164,65,.5);color:var(--ink)}
+
+/* ===================== โหมดสว่าง (กลางแจ้ง) ===================== */
+.thm{background:transparent;border:1px solid var(--hair);color:var(--ink);border-radius:999px;width:34px;height:30px;cursor:pointer;display:inline-grid;place-items:center;padding:0;margin-right:8px;flex:none}
+.thm svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.thm .sun{display:none}
+html[data-theme=light] .thm .sun{display:block}html[data-theme=light] .thm .moon{display:none}
+html[data-theme=light]{color-scheme:light;
+  --bg:#f3f3f1;--bg2:#fff;--card:rgba(0,0,0,.035);--card2:rgba(0,0,0,.07);--line:rgba(0,0,0,.14);--hair:rgba(0,0,0,.12);
+  --ink:#141416;--mut:#5b5b63;--ac:#17171a;--ac-ink:#fff;--ac-soft:rgba(0,0,0,.07);--g:#6a6a72;--g2:rgba(0,0,0,.05);
+  --b:#3f4b63;--b2:rgba(63,75,99,.1);--o:#9a6a12;--r:#c0392b;--ok:#1b7f4d}
+html[data-theme=light] body{background:radial-gradient(900px 520px at 82% -6%,rgba(0,0,0,.05),transparent 62%),var(--bg)}
+html[data-theme=light] body::before{opacity:.03;filter:invert(1)}
+html[data-theme=light] .top{background:rgba(243,243,241,.88)}
+html[data-theme=light] #nav{background:rgba(243,243,241,.9)}
+html[data-theme=light] .bar{background:rgba(243,243,241,.94)}
+@media(min-width:900px){html[data-theme=light] #nav{background:rgba(255,255,255,.6)}}
+html[data-theme=light] #nav button.on{background:var(--ac);color:var(--ac-ink)}
+@media(min-width:900px){html[data-theme=light] #nav button.on{background:rgba(0,0,0,.07);color:#000;border-left-color:#000}}
+/* การ์ดหัวหน้าแรกคงสีเข้มเป็นจุดเด่น */
+html[data-theme=light] .hero{--ink:#f3f3f5;--mut:#9a9aa2;color:#ececee;border-color:rgba(0,0,0,.2)}
+html[data-theme=light] .eyebrow{color:#9a9aa2}
+html[data-theme=light] .eyebrow::before{background:#9a9aa2}
+html[data-theme=light] .card,html[data-theme=light] .mcard,html[data-theme=light] .stats,html[data-theme=light] .rowbtn{background:#fff;border-color:rgba(0,0,0,.12);box-shadow:0 1px 2px rgba(0,0,0,.04)}
+html[data-theme=light] .mcard::before{background:radial-gradient(200px circle at var(--px,80%) var(--py,100%),rgba(0,0,0,.05),transparent 62%)}
+html[data-theme=light] .mcard::after{background:radial-gradient(circle,rgba(0,0,0,.05),transparent 70%)}
+html[data-theme=light] .mcard .go{border-color:rgba(0,0,0,.3);color:var(--ink)}
+html[data-theme=light] .mcard:hover .go{background:var(--ac);color:var(--ac-ink)}
+html[data-theme=light] .mcard:hover,html[data-theme=light] .rowbtn:hover{border-color:rgba(0,0,0,.4);background:#fff}
+html[data-theme=light] input[type=date],html[data-theme=light] input[type=text],html[data-theme=light] input[type=month],html[data-theme=light] input[type=password],html[data-theme=light] select,html[data-theme=light] textarea{background:#fff;color:var(--ink)}
+html[data-theme=light] select option{background:#fff;color:#141416}
+html[data-theme=light] ::placeholder{color:#8a8a92}
+html[data-theme=light] .opt,html[data-theme=light] .rbox,html[data-theme=light] .hchip,html[data-theme=light] .pchip,html[data-theme=light] .sc3>div,html[data-theme=light] .odr,html[data-theme=light] .scroll,html[data-theme=light] .rtabs button,html[data-theme=light] .prow{background:#fff}
+html[data-theme=light] .tile{background:#fff;border-color:rgba(0,0,0,.14)}
+html[data-theme=light] .tile:hover,html[data-theme=light] .opt:hover{border-color:rgba(0,0,0,.5)}
+html[data-theme=light] .tile.done{background:rgba(0,0,0,.08);border-color:rgba(0,0,0,.6);color:#000}
+html[data-theme=light] .tile.sel{background:rgba(0,0,0,.1);border-color:#000;color:#000}
+html[data-theme=light] .tile.un{background:transparent}
+html[data-theme=light] .tile.done.b-g{background:rgba(217,180,74,.2);border-color:#b8891a;color:#6b4d05}
+html[data-theme=light] .tile.done.b-s{background:rgba(120,130,140,.16);border-color:#7d8791;color:#3f4851}
+html[data-theme=light] .tile.done.b-b{background:rgba(192,122,69,.16);border-color:#b0652f;color:#7a4018}
+html[data-theme=light] .tile.done.b-p{background:rgba(60,140,100,.14);border-color:#3c8c64;color:#1f5a3c}
+html[data-theme=light] .tile.done.b-f{background:rgba(192,88,79,.14);border-color:#b0443b;color:#8a2a22}
+html[data-theme=light] .btn:hover{background:#000}
+html[data-theme=light] .btn.sec{border-color:rgba(0,0,0,.35);color:var(--ink)}
+html[data-theme=light] .btn.sec:hover{border-color:#000;background:rgba(0,0,0,.05)}
+html[data-theme=light] .btn.warn{background:rgba(0,0,0,.07);color:var(--ink);border-color:rgba(0,0,0,.3)}
+html[data-theme=light] .chip.on,html[data-theme=light] .tabs button.on,html[data-theme=light] .rtabs button.on,html[data-theme=light] .hchip.on,html[data-theme=light] .opt.on{background:var(--ac);color:var(--ac-ink);border-color:var(--ac)}
+html[data-theme=light] .sug .chip{background:#fff;color:var(--ink)}
+html[data-theme=light] .badge{background:rgba(0,0,0,.08)}
+html[data-theme=light] .gno{background:rgba(0,0,0,.08)}
+html[data-theme=light] .cat{background:linear-gradient(90deg,rgba(0,0,0,.06),transparent)}
+html[data-theme=light] .tot,html[data-theme=light] mark{color:#000}
+html[data-theme=light] mark{background:#ffe27a}
+html[data-theme=light] table.rv tr.sub td{background:rgba(0,0,0,.06)}
+html[data-theme=light] .prog,html[data-theme=light] .bt{background:rgba(0,0,0,.1)}
+html[data-theme=light] .prog i,html[data-theme=light] .bt i{background:linear-gradient(90deg,#8a8a92,#17171a)}
+html[data-theme=light] .tcol i{background:#2a2a2e}
+html[data-theme=light] table.dt th{background:rgba(0,0,0,.06)}
+html[data-theme=light] table.dt th:first-child,html[data-theme=light] table.dt td:first-child{background:#fff}
+html[data-theme=light] table.dt th:first-child{background:#ececea}
+html[data-theme=light] table.dt input{background:#fff;color:var(--ink)}
+html[data-theme=light] .rsec{background:#fff}
+html[data-theme=light] .rbox .no{background:rgba(0,0,0,.08)}
+html[data-theme=light] .rip{background:rgba(0,0,0,.14)}
+html[data-theme=light] .btn .rip,html[data-theme=light] .opt.on .rip,html[data-theme=light] .chip.on .rip,html[data-theme=light] #nav button.on .rip{background:rgba(255,255,255,.3)}
+html[data-theme=light] #toast{background:#17171a;color:#fff}
+html[data-theme=light] .note{background:rgba(217,164,65,.14)}
+html[data-theme=light] .note.bad{background:rgba(229,103,90,.1)}
+html[data-theme=light] .note.drafts .chip{background:#fff}
+html[data-theme=light] .badge.warn{color:#8a5a08}
+html[data-theme=light] details summary{color:var(--ink)}
+html[data-theme=light] .okfx{background:rgba(255,255,255,.92)}
+html[data-theme=light] .okfx svg{stroke:#000}
+html[data-theme=light] .stats b{color:var(--ink)}
+@media(max-width:520px){.stick .top .adminlink{display:none}}
