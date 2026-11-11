@@ -145,7 +145,7 @@
       <section class="hero hl-hero">
         <h1>ตรวจห้องเรียน<br>และเขตพื้นที่</h1>
         <p>${esc(S.init.term || '')}<br>สภานักเรียน ${esc(S.init.schoolName || '')}</p></section>
-      <div class="wall" id="wall"></div>
+      <div class="wall"><div id="wall"></div><form class="ws" id="ws" autocomplete="off"><input type="text" id="wsq" placeholder="ค้นหาห้อง เช่น 3/5" aria-label="ค้นหาห้อง" maxlength="6"><button type="submit" class="btn sec">ค้นหา</button></form></div>
       <div class="card hl-date"><label for="dt">วันที่ตรวจ</label>
         <input type="date" id="dt" value="${S.date}" max="${S.init.today}">
         <div class="muted" id="dtl" style="margin-top:6px">${thDate(S.date)}</div><div id="hol"></div></div>
@@ -160,16 +160,44 @@
     S.wk = S.wk || 'classroom'; let firstWall = true;
     const drawWall = (r, cnt) => {
       const el = document.getElementById('wall'); if (!el) return;
-      const L = CR.LEVELS, RM = CR.ROOMS, k = S.wk, st = {};
+      const L = CR.LEVELS, RM = CR.ROOMS, k = S.wk, st = {}; S.wr = r;
       if (r) { r.inspections.forEach(x => { if (x.kind === k) st[x.level + '|' + x.room] = 'd'; }); r.unavail.forEach(x => { if (x.kind === k) st[x.level + '|' + x.room] = 'u'; }); }
       const n = r ? Object.keys(st).length : (cnt ? (Number(cnt[k]) || 0) + (Number(cnt['un' + k]) || 0) : null);
       let cells = '', i = 0;
-      L.forEach(l => { cells += `<span class="wl">ม.${l}</span>`; for (let m = 1; m <= RM; m++) { const v = st[l + '|' + m] || ''; cells += `<button type="button" class="wc ${v}" style="--i:${i++}" data-l="${l}" data-r="${m}" aria-label="ม.${l}/${m} ${v === 'd' ? 'ตรวจแล้ว' : v === 'u' ? 'ตรวจไม่ได้' : 'ยังไม่ตรวจ'}"></button>`; } });
+      L.forEach(l => { cells += `<span class="wl">ม.${l}</span>`; for (let m = 1; m <= RM; m++) { const v = st[l + '|' + m] || ''; cells += `<button type="button" class="wc ${v}" style="--i:${i++}" data-l="${l}" data-r="${m}" aria-label="ม.${l}/${m} ${v === 'd' ? 'ตรวจแล้ว' : v === 'u' ? 'ตรวจไม่ได้' : 'ยังไม่ตรวจ'}">${m}</button>`; } });
       el.innerHTML = `<div class="wh"><div class="wn">${n == null ? '-' : n >= 72 ? 'ครบ' : n}<small>${n != null && n < 72 ? '/72' : ''}</small></div><div class="wt"><button type="button" data-k="classroom" class="${k === 'classroom' ? 'on' : ''}">ห้องเรียน</button><button type="button" data-k="zone" class="${k === 'zone' ? 'on' : ''}">เขตพื้นที่</button></div></div>
         <div class="wg${firstWall ? ' in' : ''}">${cells}</div><div class="wk"><span><i class="wc d"></i>ตรวจแล้ว</span><span><i class="wc u"></i>ตรวจไม่ได้</span><span><i class="wc"></i>ยังไม่ตรวจ</span></div>`;
       firstWall = false;
       el.querySelectorAll('.wt button').forEach(b => b.onclick = () => { S.wk = b.dataset.k; drawWall(r, cnt); });
-      el.querySelectorAll('.wc[data-l]').forEach(b => b.onclick = () => { S.kind = k; S.level = b.dataset.l; S._resume = b.classList.contains('d') || b.classList.contains('u') ? null : b.dataset.r; setTab(k); enterLevel(); });
+      el.querySelectorAll('.wc[data-l]').forEach(b => b.onclick = () => openRoom(k, b.dataset.l, b.dataset.r));
+    };
+    const KN2 = { classroom: 'ห้องเรียน', zone: 'เขตพื้นที่' };
+    const closeSheet = () => { const s = document.getElementById('sheet'); if (s) s.remove(); document.removeEventListener('keydown', escSheet); };
+    const escSheet = e => { if (e.key === 'Escape') closeSheet(); };
+    const openRoom = (k, l, m) => {
+      closeSheet();
+      const r = S.wr, ins = r && r.inspections.find(x => x.kind === k && x.level === String(l) && x.room === String(m)), un = r && r.unavail.find(x => x.kind === k && x.level === String(l) && x.room === String(m));
+      const st = ins ? 'ตรวจแล้ว' : un ? 'ตรวจไม่ได้' : (r ? 'ยังไม่ตรวจ' : 'ยังไม่มีข้อมูลสถานะ');
+      const sh = document.createElement('div'); sh.id = 'sheet'; sh.className = 'sheet';
+      sh.innerHTML = `<div class="sb" data-x></div><div class="sp" role="dialog" aria-label="รายละเอียดห้อง"><div class="sk2">${KN2[k]} · ${thDate(S.date)}</div><h2>ม.${l}/${m}</h2><div class="sst ${ins ? 'd' : un ? 'u' : ''}">${st}</div>
+        ${ins ? `<div class="ssc">${ins.total}<small>/100</small></div><div class="muted" id="shx">กำลังโหลดผู้ตรวจ...</div>` : ''}${un ? `<div class="muted">${esc(un.reason || 'ไม่ระบุเหตุผล')}</div>` : ''}
+        <div class="sact">${ins ? '' : '<button class="btn" data-go="1">ไปตรวจห้องนี้</button>'}<button class="btn sec" data-lv="1">เปิดชั้น ม.${l}</button><button class="btn sec" data-x>ปิด</button></div></div>`;
+      document.body.appendChild(sh); document.addEventListener('keydown', escSheet);
+      sh.querySelectorAll('[data-x]').forEach(b => b.onclick = closeSheet);
+      const go = resume => { closeSheet(); S.kind = k; S.level = String(l); S._resume = resume ? String(m) : null; setTab(k); enterLevel(); };
+      const g = sh.querySelector('[data-go]'); if (g) g.onclick = () => go(true);
+      sh.querySelector('[data-lv]').onclick = () => go(false);
+      if (ins) api('levelData', { kind: k, date: S.date, level: String(l) }).then(ld => {
+        const x = document.getElementById('shx'); if (!x || !document.getElementById('sheet')) return;
+        const d = ld && ld.status && ld.status.done && ld.status.done.find(q => String(q.room) === String(m)), nm = ld && ld.status && ld.status.team && ld.status.team.names;
+        x.innerHTML = (nm && nm.length ? 'ผู้ตรวจ: ' + esc(nm.join(', ')) : 'ไม่พบรายชื่อผู้ตรวจ') + (d && d.submittedDate ? '<br>ส่งผลเมื่อ ' + esc(String(d.submittedDate)) : '');
+      }).catch(() => { const x = document.getElementById('shx'); if (x) x.textContent = 'โหลดรายชื่อผู้ตรวจไม่ได้ (ออฟไลน์)'; });
+    };
+    const ws = document.getElementById('ws');
+    if (ws) ws.onsubmit = e => {
+      e.preventDefault(); const q = document.getElementById('wsq'), m = /^\s*(?:ม\.?\s*)?([1-6])\s*[\/.\-\s]\s*(\d{1,2})\s*$/.exec(q.value);
+      if (!m || +m[2] < 1 || +m[2] > CR.ROOMS) { toast('พิมพ์เป็น ชั้น/ห้อง เช่น 3/5 (ชั้น 1–6 ห้อง 1–' + CR.ROOMS + ')'); return; }
+      openRoom(S.wk, m[1], String(+m[2])); q.value = '';
     };
     drawWall(null, null);
     const loadStats = async () => {
@@ -231,7 +259,7 @@
     const doneSet = {}; r.inspections.forEach(x => doneSet[key(x)] = x); r.unavail.forEach(x => doneSet[key(x)] = Object.assign({ un: true }, x));
     const rowFor = k => L.map(l => {
       const ins = r.inspections.filter(x => x.kind === k && x.level === String(l)).length, un = r.unavail.filter(x => x.kind === k && x.level === String(l)).length, p = Math.round((ins + un) / RM * 100);
-      return `<div class="lvr"><span class="lvn">ม.${l}</span><div class="prog"><i style="width:${p}%"></i></div><span class="lvc">${ins + un}/${RM}</span></div>`;
+      return `<div class="lvr"><span class="lvn">ม.${l}</span><div class="prog"><i style="width:${p}%"></i></div><span class="lvc">${ins + un}/${RM}<small>${p}% · เหลือ ${RM - ins - un}</small></span></div>`;
     }).join('');
     const sc = k => { const a = r.inspections.filter(x => x.kind === k); if (!a.length) return '<div class="muted">ยังไม่มีผลตรวจ</div>'; const avg = a.reduce((s, x) => s + x.total, 0) / a.length, hi = a.reduce((m, x) => x.total > m.total ? x : m, a[0]), lo = a.reduce((m, x) => x.total < m.total ? x : m, a[0]);
       return `<div class="sc3"><div><b>${avg.toFixed(1)}</b><small>เฉลี่ย</small></div><div><b>${hi.total}</b><small>สูงสุด ม.${hi.level}/${hi.room}</small></div><div><b>${lo.total}</b><small>ต่ำสุด ม.${lo.level}/${lo.room}</small></div></div>`; };

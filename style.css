@@ -658,3 +658,37 @@ body{font-weight:400}
   .hero h1{font-size:clamp(48px,4.4vw,72px)}
   .wn{font-size:128px}
 }
+
+/* ===== รอบปรับ: หัวข้อเล็กลง เลขห้องในช่อง เขียวเฉพาะ "ตรวจแล้ว" ===== */
+.hero h1,html[data-theme=light] .hero h1{font-size:clamp(38px,12.6vw,61px);margin-bottom:12px}
+.hero{padding:16px 0 14px}
+@media(min-width:1000px){.hero h1{font-size:clamp(42px,3.8vw,62px)}}
+.wg{grid-template-columns:28px repeat(12,1fr);gap:3px}
+.wc{display:grid;place-items:center;font:500 11px/1 var(--sans);color:var(--mut);aspect-ratio:1;min-height:26px}
+.wc.d{background:color-mix(in srgb,var(--ok) 30%,transparent);border-color:var(--ok);color:var(--ink);font-weight:700}
+.wc.u{color:var(--ink)}
+.wk .wc{width:14px;height:14px;min-height:0;font-size:0}
+.wc.hit{outline:2px solid var(--ink);outline-offset:1px}
+.wn{font-size:clamp(56px,19vw,84px)}
+@media(min-width:1000px){.wn{font-size:112px}}
+.ws{display:flex;gap:8px;align-items:flex-end;margin-top:18px}
+.ws input{flex:1;min-width:0}
+.ws .btn{padding:10px 16px;flex:none}
+.prog i,.bt i,html[data-theme=light] .prog i,html[data-theme=light] .bt i{background:var(--ok)}
+.lvr{grid-template-columns:38px 1fr 92px}
+.lvc{line-height:1.25}.lvc small{display:block;font-size:11.5px;color:var(--mut);font-weight:300}
+
+/* รายละเอียดห้อง (แผ่นล่าง) */
+.sheet{position:fixed;inset:0;z-index:30;display:flex;align-items:flex-end;justify-content:center}
+.sb{position:absolute;inset:0;background:rgba(0,0,0,.55)}
+.sp{position:relative;width:100%;max-width:520px;background:var(--bg);border-top:2px solid var(--ink);padding:20px 20px calc(22px + env(safe-area-inset-bottom));animation:shUp .22s ease-out both}
+@keyframes shUp{from{transform:translateY(24px);opacity:0}to{transform:none;opacity:1}}
+@media(prefers-reduced-motion:reduce){.sp{animation:none}}
+@media(min-width:700px){.sheet{align-items:center}.sp{border:2px solid var(--ink)}}
+.sk2{font-size:13px;color:var(--mut)}
+.sp h2{font-family:var(--serif);font-weight:800;font-size:44px;line-height:1.05;margin:2px 0 4px;letter-spacing:-.02em}
+.sst{display:inline-block;border:1px solid var(--hair);padding:2px 10px;font-size:14px;margin-bottom:10px}
+.sst.d{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 22%,transparent)}
+.ssc{font-family:var(--serif);font-weight:800;font-size:56px;line-height:1;letter-spacing:-.02em;margin:4px 0 6px}.ssc small{font-size:.35em;font-weight:300;color:var(--mut)}
+.sact{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}.sact .btn{flex:1;min-width:120px}
+.ws input,.ws input[type=text]{width:auto;flex:1 1 0;min-width:0}.ws .btn{width:auto;flex:0 0 auto}
