@@ -98,6 +98,28 @@
   const draftKey = () => ['draft', S.kind, S.date, S.level, S.room].join('|');
   function saveDraft() { try { localStorage.setItem(draftKey(), JSON.stringify(S.scores)); } catch (e) {} }
   function loadDraft() { try { return JSON.parse(localStorage.getItem(draftKey()) || '{}'); } catch (e) { return {}; } }
+  // ร่างที่ยังไม่ส่ง (ปิดแอปกลางทาง) ใช้แจ้งในหน้าแรกให้กลับไปทำต่อ
+  function findDrafts() {
+    const out = [], qk = getQ().map(q => q.params || {});
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i); if (!k || k.indexOf('draft|') !== 0) continue;
+        const [, kind, date, level, room] = k.split('|'); let sc = null; try { sc = JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) {}
+        const n = sc ? Object.keys(sc).length : 0; if (!n || !CR[kind]) continue;
+        if (qk.some(p => p.kind === kind && p.date === date && String(p.level) === level && String(p.room) === room)) continue;
+        out.push({ kind, date, level, room, n, total: CR[kind].categories.reduce((a, c) => a + c.items.length, 0) });
+      }
+    } catch (e) {}
+    return out.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0)).slice(0, 4);
+  }
+  function draftBanner() {
+    const d = findDrafts(); if (!d.length) return '';
+    return '<div class="note drafts"><b>มีใบตรวจที่ยังไม่ได้ส่ง</b><div class="sug" style="margin-top:8px">' + d.map(x => `<button type="button" class="chip dr" data-k="${x.kind}" data-d="${x.date}" data-l="${x.level}" data-r="${x.room}">ม.${x.level}/${x.room} · ${x.kind === 'classroom' ? 'ห้องเรียน' : 'เขต'} · ${thDate(x.date).replace(/^วัน\S+ที่ /, '')} (${x.n}/${x.total})</button>`).join('') + '</div></div>';
+  }
+  function bindDrafts() {
+    $app.querySelectorAll('.dr').forEach(b => b.onclick = () => { S.kind = b.dataset.k; S.date = b.dataset.d; S.level = b.dataset.l; S._resume = b.dataset.r; setTab(S.kind); enterLevel(); });
+  }
+  function clearDraftFor(r) { try { localStorage.removeItem(['draft', S.kind, S.date, S.level, r].join('|')); } catch (e) {} }
   function clearDraft() { try { localStorage.removeItem(draftKey()); } catch (e) {} }
 
   // ---------- 1 หน้าแรก ----------
@@ -116,7 +138,7 @@
     }
     if (my !== NAV) return;
     S.date = S.date || S.init.today;
-    $app.innerHTML = qBanner() + `
+    $app.innerHTML = qBanner() + draftBanner() + `
       <section class="hero"><div class="bigword">CLEAN</div>
         <div class="eyebrow">สภานักเรียน · ${esc(S.init.schoolName || '')}</div>
         <h1>ตรวจห้องเรียน<br>และเขตพื้นที่</h1>
@@ -131,7 +153,7 @@
         <button class="mcard" data-k="classroom"><span class="go">${IC.arrow}</span><span class="ic">${IC.school}</span><span><b>ตรวจห้องเรียน</b><small>The SMART Classroom</small></span></button>
       </div>
 `;
-    bindQ();
+    bindQ(); bindDrafts();
     const loadStats = async () => {
       const d = S.date; let r = null, old = false;
       try { const x = await cached('ds|' + d, 'dayStats', { date: d }); r = x.d; old = x.old; } catch (e) { r = null; }
@@ -289,7 +311,14 @@
       catch (e) { let c = null; try { c = JSON.parse(localStorage.getItem(lk) || 'null'); } catch (x) {} if (e.net && c) { ld = c; toast('ออฟไลน์: ใช้ข้อมูลที่จำไว้ล่าสุด'); } else throw e; }
       if (my !== NAV) return;
       S.status = ld.status; S.team = S.status.team; S.rosterNames = ld.rosterNames || [];
-      if (!S.team) return teamStep(); else return rooms();
+      if (!S.team) { S._resume = null; return teamStep(); }
+      if (S._resume) {
+        const r = S._resume; S._resume = null; rooms();
+        const t = $app.querySelector('.tile[data-r="' + r + '"]');
+        if (t && t.dataset.s === 'new') { S.room = r; S.editing = false; S.scores = loadDraft(); return form(); }
+        clearDraftFor(r); toast('ห้องนี้ส่งผลตรวจไปแล้ว ล้างร่างที่ค้างแล้ว'); return;
+      }
+      return rooms();
     } catch (e) { if (my !== NAV) return; fail(e); pickLevel(); }
   }
 
@@ -407,7 +436,7 @@
     for (let r = 1; r <= CR.ROOMS; r++) {
       if (un[r]) h += `<button class="tile un" data-r="${r}" data-s="un">${S.level}/${r}<small>${esc(un[r].reason || 'ตรวจไม่ได้')}</small></button>`;
       else if (done[r]) h += `<button class="tile done ${bandCls(done[r].total)}" data-r="${r}" data-s="done">${S.level}/${r}<small>${done[r].pending ? 'รอส่ง' : 'ตรวจแล้ว'} ${done[r].total}</small></button>`;
-      else h += `<button class="tile" data-r="${r}" data-s="new">${S.level}/${r}<small>ยังไม่ตรวจ</small></button>`;
+      else h += `<button class="tile" data-r="${r}" data-s="new">${S.level}/${r}<small>${lsGet(['draft', S.kind, S.date, S.level, r].join('|')) ? 'ทำค้างไว้' : 'ยังไม่ตรวจ'}</small></button>`;
     }
     h += `</div></div><button class="btn sec" id="img" ${n ? '' : 'disabled'}>ดาวน์โหลดใบประเมินเป็นรูปภาพ</button>${n + Object.keys(un).length >= CR.ROOMS ? '<div class="note" style="margin-top:10px"><b>ตรวจครบทุกห้องแล้ว</b><br>1) กดดาวน์โหลดใบเป็นรูปภาพเพื่อบันทึกใบ 2) นำใบไปเซ็นชื่อ 3) อัปใบที่เซ็นแล้วลงอัลบั้มในไลน์กลุ่ม</div>' : ''}`;
     $app.innerHTML = h;

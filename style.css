@@ -414,3 +414,4 @@ details summary{color:var(--ink)}
 @keyframes okIn{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:none}}
 @keyframes okOut{to{opacity:0;transform:scale(.92)}}
 @media(prefers-reduced-motion:reduce){.rip,.okfx{display:none!important}}
+.note.drafts{margin-bottom:12px}.note.drafts .chip{background:rgba(217,164,65,.14);border-color:rgba(217,164,65,.5);color:var(--ink)}
