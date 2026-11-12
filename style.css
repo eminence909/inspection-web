@@ -718,3 +718,20 @@ body{font-weight:400}
 @media(min-width:1000px){.home{grid-template-rows:auto auto 1fr;grid-template-areas:"hero wall" "date wall" "menu wall" "menu stats"}.hl-menu{align-self:start}}
 .sheet .sp:focus{outline:0}
 @media(max-width:899px){main .tabs{-webkit-mask-image:linear-gradient(90deg,#000 92%,transparent);mask-image:linear-gradient(90deg,#000 92%,transparent)}}
+
+/* ===== หน้าประกาศผล: โปสเตอร์ (อันดับ 1 ใหญ่สุด) ===== */
+html body .prow{display:grid;grid-template-columns:56px 1fr auto;gap:12px;align-items:center;padding:12px 0 12px 14px;margin:0;background:none;border:0;border-bottom:1px solid var(--hair);border-left:6px solid transparent}
+html body .prow .rk{width:auto;height:auto;background:none;color:var(--ink);font-family:var(--serif);font-weight:800;font-size:30px;line-height:1;justify-content:start;place-items:center start}
+html body .prow .rm{font-family:var(--serif);font-weight:800;font-size:22px;line-height:1.25}
+html body .prow .aw{font-family:var(--sans);font-size:14px;font-weight:600;color:var(--mut)}
+html body .prow.r1{grid-template-columns:76px 1fr;padding:22px 0 22px 14px;border-left-color:#e3b341;border-top:2px solid var(--ink);border-bottom:2px solid var(--ink)}
+html body .prow.r1 .rk{font-size:64px;background:none;color:var(--ink)}
+html body .prow.r1 .rm{font-size:40px;line-height:1.15}
+html body .prow.r1 .mdl{grid-column:2;justify-self:start;margin-top:4px}
+html body .prow.r1 .aw{font-size:16px}
+html body .prow.r2{border-left-color:#c9d1d6;padding-top:16px;padding-bottom:16px}html body .prow.r2 .rk,html body .prow.r3 .rk{font-size:40px;background:none;color:var(--ink)}
+html body .prow.r2 .rm,html body .prow.r3 .rm{font-size:28px}
+html body .prow.r3{border-left-color:#d08a54;padding-top:16px;padding-bottom:16px}
+html body .prow.na{opacity:.55}
+html body .mdl{border-radius:0;font-weight:600;padding:3px 10px;font-size:13px}
+.prow.r1 .rk::after,.prow.r1 .mdl.gold::after{display:none}

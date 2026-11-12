@@ -295,16 +295,33 @@
     $app.innerHTML = qBanner() +
       row('guideBtn', IC.help, 'วิธีการใช้งานเว็บนี้') +
       row('offBtn', IC.list, 'เตรียมใช้งานออฟไลน์', 'โหลดข้อมูลวันนี้ไว้ในเครื่อง ใช้ตอนไม่มีสัญญาณ') +
+      (isStandalone() ? '' : row('instBtn', IC.leaf, 'ติดตั้งเป็นแอปบนโทรศัพท์', 'เปิดไวขึ้น เต็มจอ ไม่ต้องพิมพ์ลิงก์')) +
       row('lineBtn', IC.help, 'ติดต่อแอดมิน / แจ้งปัญหา (ไลน์)') +
       '<div style="text-align:center;margin-top:16px;display:flex;gap:18px;justify-content:center"><a href="roster.html" class="muted">สำหรับผู้จัดเวร</a><a href="admin.html" class="muted" target="_blank" rel="noopener">สำหรับแอดมิน</a></div>';
     bindQ();
     document.getElementById('guideBtn').onclick = viewGuide;
     document.getElementById('offBtn').onclick = prepareOffline;
+    { const ib = document.getElementById('instBtn'); if (ib) ib.onclick = viewInstall; }
     document.getElementById('lineBtn').onclick = () => {
       const u = (S.init && S.init.lineUrl) || window.LINE_URL || '';
       if (/^https?:\/\//.test(u)) window.open(u, '_blank', 'noopener');
       else toast('แอดมินยังไม่ได้ตั้งลิงก์ไลน์ (แอดมิน: ตั้งค่า > ลิงก์ไลน์แอดมิน)');
     };
+  }
+
+  const isStandalone = () => { try { return (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true; } catch (e) { return false; } };
+  window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); window._bip = e; });
+  function viewInstall() {
+    bar(); header('ติดตั้งเป็นแอป', 'เพิ่มไว้ที่หน้าจอโฮม', viewMore); setTab('more');
+    const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const IOS = ['เปิดเว็บนี้ด้วย Safari (ไม่ใช่ในแอปไลน์)', 'แตะปุ่มแชร์ (สี่เหลี่ยมมีลูกศรชี้ขึ้น) ที่แถบล่าง', 'เลื่อนลงแล้วเลือก "เพิ่มไปยังหน้าจอโฮม"', 'กด "เพิ่ม" มุมขวาบน'];
+    const AND = ['เปิดเว็บนี้ด้วย Chrome (ไม่ใช่ในแอปไลน์)', 'แตะเมนูสามจุดมุมขวาบน', 'เลือก "ติดตั้งแอป" หรือ "เพิ่มลงในหน้าจอหลัก"', 'กด "ติดตั้ง"'];
+    const blk = (t, s, first) => `<div class="card"><h3>${t}${first ? ' <span class="badge">เครื่องของคุณ</span>' : ''}</h3>${s.map((x, i) => `<div style="display:flex;gap:12px;margin-top:8px"><div class="gno">${i + 1}</div><div>${esc(x)}</div></div>`).join('')}</div>`;
+    $app.innerHTML = (window._bip ? '<button class="btn" id="bipGo" style="width:100%;margin-bottom:12px">ติดตั้งตอนนี้</button>' : '') +
+      (ios ? blk('iPhone / iPad', IOS, true) + blk('Android', AND, false) : blk('Android', AND, true) + blk('iPhone / iPad', IOS, false)) +
+      '<div class="note">ถ้าเปิดลิงก์จากไลน์ ให้กดเมนูในไลน์แล้วเลือก "เปิดในเบราว์เซอร์" ก่อน</div>';
+    const g = document.getElementById('bipGo');
+    if (g) g.onclick = async () => { try { window._bip.prompt(); await window._bip.userChoice; } catch (e) {} window._bip = null; viewMore(); };
   }
 
   function viewGuide() {
