@@ -692,3 +692,6 @@ body{font-weight:400}
 .ssc{font-family:var(--serif);font-weight:800;font-size:56px;line-height:1;letter-spacing:-.02em;margin:4px 0 6px}.ssc small{font-size:.35em;font-weight:300;color:var(--mut)}
 .sact{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}.sact .btn{flex:1;min-width:120px}
 .ws input,.ws input[type=text]{width:auto;flex:1 1 0;min-width:0}.ws .btn{width:auto;flex:0 0 auto}
+.clr{display:flex;justify-content:flex-end;margin:0 0 10px}
+.clr .btn{padding:7px 14px;font-size:14px;font-weight:500}
+.clr .btn.arm{background:var(--r);border-color:var(--r);color:#fff}

@@ -525,7 +525,7 @@
   function form() {
     const def = CR[S.kind];
     header(`ม.${S.level}/${S.room}`, kindName() + (S.editing ? ' · แก้ไข' : ''), () => { rooms(); }, true);
-    let h = '';
+    let h = '<div class="clr"><button type="button" class="btn sec" id="clr">ล้างคะแนนทั้งหมด</button></div>';
     def.categories.forEach(c => {
       h += `<div class="cat" data-c="${c.no}" role="button" tabindex="0"><span>${c.no}. ${esc(c.title)}</span><span><span data-sub="${c.no}"></span><svg class="chev" viewBox="0 0 24 24" width="16" height="16"><path d="M6 9l6 6 6-6"/></svg></span></div><div class="cbody" data-cb="${c.no}">`;
       c.items.forEach(it => {
@@ -571,6 +571,13 @@
     });
     $app.querySelectorAll('.info').forEach(b => b.onclick = () => b.nextElementSibling.classList.toggle('show'));
     document.getElementById('rv').onclick = () => review(false);
+    const clr = document.getElementById('clr'); let clrT = null;
+    clr.onclick = () => {
+      if (!Object.keys(S.scores).length) { toast('ยังไม่มีคะแนนให้ล้าง'); return; }
+      if (!clr.classList.contains('arm')) { clr.classList.add('arm'); clr.textContent = 'แตะอีกครั้งเพื่อล้างทั้งหมด'; clrT = setTimeout(() => { clr.classList.remove('arm'); clr.textContent = 'ล้างคะแนนทั้งหมด'; }, 3500); return; }
+      clearTimeout(clrT); S.scores = {}; try { localStorage.removeItem(draftKey()); } catch (e) {}
+      form(); window.scrollTo(0, 0); toast('ล้างคะแนนแล้ว เริ่มกรอกใหม่ได้เลย');
+    };
     refresh();
   }
 
