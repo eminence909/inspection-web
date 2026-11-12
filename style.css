@@ -748,3 +748,10 @@ html body .mdl{border-radius:0;font-weight:600;padding:3px 10px;font-size:13px}
 .mcard .go{font-size:36px}
 .menu,.menu.hl-menu{margin-bottom:26px}
 @media(min-width:1000px){.mcard b{font-size:40px}.hero h1{font-size:clamp(42px,3.8vw,62px)}}
+
+/* ===== หน้ากรอกคะแนน: แถบความคืบหน้าติดใต้หัวหน้าจอ + หมวดที่เสร็จเป็นสีเขียว ===== */
+.fprog{position:sticky;top:calc(var(--toph,62px) - 1px);z-index:4;height:4px;margin:-18px -16px 14px;background:var(--hair)}
+.fprog i{display:block;height:100%;width:0;background:var(--ok);transition:width .25s ease}
+@media(prefers-reduced-motion:reduce){.fprog i{transition:none}}
+.cat.ok [data-sub]{color:var(--ok);font-weight:700}
+@media(min-width:900px){body.hasnav .fprog{margin-left:0}}

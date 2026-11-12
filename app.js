@@ -543,7 +543,7 @@
   function form() {
     const def = CR[S.kind];
     header(`ม.${S.level}/${S.room}`, kindName() + (S.editing ? ' · แก้ไข' : ''), () => { rooms(); }, true);
-    let h = '<div class="clr"><button type="button" class="btn sec" id="clr">ล้างคะแนนทั้งหมด</button></div>';
+    let h = '<div class="fprog" aria-hidden="true"><i id="fp"></i></div><div class="clr"><button type="button" class="btn sec" id="clr">ล้างคะแนนทั้งหมด</button></div>';
     def.categories.forEach(c => {
       h += `<div class="cat" data-c="${c.no}" role="button" tabindex="0"><span>${c.no}. ${esc(c.title)}</span><span><span data-sub="${c.no}"></span><svg class="chev" viewBox="0 0 24 24" width="16" height="16"><path d="M6 9l6 6 6-6"/></svg></span></div><div class="cbody" data-cb="${c.no}">`;
       c.items.forEach(it => {
@@ -566,6 +566,8 @@
       const filled = def.categories.reduce((a, c) => a + c.items.filter(i => S.scores[i.id] !== undefined).length, 0);
       const all = def.categories.reduce((a, c) => a + c.items.length, 0);
       document.getElementById('sum').textContent = `ตอบแล้ว ${filled}/${all} · ${t.total}/100`;
+      const fp = document.getElementById('fp'); if (fp) fp.style.width = (all ? Math.round(filled / all * 100) : 0) + '%';
+      def.categories.forEach(c => { const e = $app.querySelector(`.cat[data-c="${c.no}"]`); if (e) e.classList.toggle('ok', c.items.every(i => S.scores[i.id] !== undefined)); });
       document.getElementById('rv').disabled = filled < all;
     };
     const catDone = c => c.items.every(i => S.scores[i.id] !== undefined);
