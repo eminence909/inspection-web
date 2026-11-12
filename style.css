@@ -755,3 +755,28 @@ html body .mdl{border-radius:0;font-weight:600;padding:3px 10px;font-size:13px}
 @media(prefers-reduced-motion:reduce){.fprog i{transition:none}}
 .cat.ok [data-sub]{color:var(--ok);font-weight:700}
 @media(min-width:900px){body.hasnav .fprog{margin-left:0}}
+
+/* ===== อัตลักษณ์โรงเรียน: เหลืองทองเป็นสีเน้นหลัก ฟ้าเฉพาะลิงก์/ข้อมูล (สีหยิบจากตราโรงเรียน) ===== */
+:root{--gold:#e2b43c;--gold-ink:#1a1405;--gold-line:#e2b43c;--b:#6cc0d6;--b2:rgba(108,192,214,.12)}
+html[data-theme=light]{--gold:#d7aa34;--gold-ink:#1a1405;--gold-line:#a87b00;--b:#1e7592;--b2:rgba(30,117,146,.1)}
+.logo{width:34px;height:34px;flex:none;border-radius:50%!important;object-fit:cover}
+@media(max-width:380px){.logo{width:28px;height:28px}}
+/* ปุ่มหลัก = เหลืองทอง */
+.btn,html[data-theme=light] .btn{background:var(--gold);color:var(--gold-ink);border-color:var(--gold)}
+.btn:hover,html[data-theme=light] .btn:hover{background:transparent;color:var(--ink);border-color:var(--gold-line)}
+.btn:disabled,.btn[disabled]{background:var(--card2);color:var(--mut);border-color:var(--hair)}
+.btn.sec,html[data-theme=light] .btn.sec,.btn.warn,html[data-theme=light] .btn.warn{background:transparent;color:var(--ink);border-color:var(--ink)}
+.btn.danger{background:var(--r);border-color:var(--r);color:#fff}
+/* แท็บและเมนูที่เลือกอยู่ = เส้นใต้เหลือง */
+#nav button.on,main .tabs button.on,html[data-theme=light] #nav button.on,html[data-theme=light] main .tabs button.on{border-bottom-color:var(--gold-line)}
+.wt button.on{border-bottom-color:var(--gold-line)}
+@media(min-width:900px){#nav button.on,main.wide #tabs button.on,html[data-theme=light] #nav button.on,html[data-theme=light] main.wide #tabs button.on{border-left-color:var(--gold-line);border-bottom-color:transparent}}
+/* เส้นเด่นบนหัวข้อหน้าแรก */
+.hero,html[data-theme=light] .hero{border-top:3px solid var(--gold-line)}
+/* คำตอบที่เลือกในใบตรวจ */
+.opt.on,html[data-theme=light] .opt.on{background:var(--gold);color:var(--gold-ink);border-color:var(--gold-line)}
+/* ลิงก์/ข้อมูล = ฟ้า */
+a:not(.btn):not(.icon):not(.adminlink),.info,details summary{color:var(--b)}
+.muted a{color:var(--b)}
+/* สถานะยังคงตามความหมาย: เขียว = ตรวจแล้ว */
+.btn:disabled,.btn[disabled],html[data-theme=light] .btn:disabled{background:var(--card2)!important;color:var(--mut)!important;border-color:var(--hair)!important;opacity:1;cursor:not-allowed}

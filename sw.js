@@ -1,6 +1,6 @@
 // เก็บไฟล์หน้าเว็บไว้ใช้ตอนไม่มีสัญญาณ: ลองโหลดใหม่ก่อน (รอไม่เกิน 4 วินาทีเมื่อสัญญาณอ่อน) ถ้าไม่ได้ใช้ของที่เก็บไว้
-const C = 'insp-v13';
-const SHELL = ['./', 'index.html', 'fx.js', 'style.css', 'font.js', 'config.js', 'criteria.js', 'calc.js', 'roster.js', 'lazy.js', 'app.js', 'manifest.json', 'icon-192.png'];
+const C = 'insp-v15';
+const SHELL = ['./', 'index.html', 'fx.js', 'style.css', 'font.js', 'config.js', 'criteria.js', 'calc.js', 'roster.js', 'lazy.js', 'app.js', 'manifest.json', 'icon-192.png', 'logo-128.png', 'favicon.png'];
 self.addEventListener('install', e => {
   self.skipWaiting();
   // เก็บโครงหน้าเว็บทันทีที่ติดตั้ง (ไม่ให้การติดตั้งล้มถ้าไฟล์ใดโหลดไม่ได้)

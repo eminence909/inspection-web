@@ -6,12 +6,13 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ประกาศผล | สภานักเรียน</title>
 <link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" href="favicon.png">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=Anuphan:wght@500;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20261111r">
-<script src="font.js?v=20261111r"></script>
+<link rel="stylesheet" href="style.css?v=20261111t">
+<script src="font.js?v=20261111t"></script>
 <style>
 .rtabs{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px}
 .rtabs button{flex:1 1 120px;font:inherit;padding:11px 12px;border-radius:14px;border:1px solid var(--line);background:rgba(0,0,0,.25);color:var(--ink);cursor:pointer;font-weight:600}
@@ -29,13 +30,13 @@
 <body>
 <header class="top">
   <a class="icon" href="index.html" aria-label="กลับ"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></a>
-  <div class="ttl"><b>ประกาศผล</b><small>สภานักเรียน</small></div>
+  <img class="logo" src="logo-128.png" alt="" width="34" height="34"><div class="ttl"><b>ประกาศผล</b><small>สภานักเรียน</small></div>
   <button class="fsz" id="fsz" type="button" aria-label="ขนาดตัวอักษร">ก</button>
 </header>
 <main id="app"><div class="sk" role="status" aria-label="กำลังโหลด"><i style="height:200px"></i><i style="height:52px"></i><i style="height:140px"></i></div></main>
 <div id="toast" role="status"></div>
-<script src="fx.js?v=20261111r" defer></script>
-<script src="config.js?v=20261111r"></script>
+<script src="fx.js?v=20261111t" defer></script>
+<script src="config.js?v=20261111t"></script>
 <script>
 (function () {
   const $app = document.getElementById('app');
