@@ -717,3 +717,4 @@ body{font-weight:400}
 @media(max-width:899px){#nav{-webkit-mask-image:linear-gradient(90deg,#000 90%,transparent);mask-image:linear-gradient(90deg,#000 90%,transparent)}}
 @media(min-width:1000px){.home{grid-template-rows:auto auto 1fr;grid-template-areas:"hero wall" "date wall" "menu wall" "menu stats"}.hl-menu{align-self:start}}
 .sheet .sp:focus{outline:0}
+@media(max-width:899px){main .tabs{-webkit-mask-image:linear-gradient(90deg,#000 92%,transparent);mask-image:linear-gradient(90deg,#000 92%,transparent)}}

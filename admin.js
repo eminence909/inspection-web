@@ -51,6 +51,7 @@
     $app.innerHTML = `<div class="tabs" id="tabs">${tabs.map(t => `<button data-t="${t[0]}" class="${st.tab === t[0] ? 'on' : ''}">${t[1]}</button>`).join('')}</div>
       <div class="seg" style="margin-bottom:14px"><button class="tile ${st.kind === 'zone' ? 'sel' : ''}" data-k="zone">เขตพื้นที่</button><button class="tile ${st.kind === 'classroom' ? 'sel' : ''}" data-k="classroom">ห้องเรียน</button></div>
       <div id="pane"></div>`;
+    { const tb = document.getElementById('tabs'), on = tb.querySelector('button.on'); if (on && tb.scrollWidth > tb.clientWidth) tb.scrollLeft = Math.max(0, on.offsetLeft - 24); }
     document.querySelectorAll('#tabs button').forEach(b => b.onclick = () => { st.tab = b.dataset.t; shell(); });
     document.querySelectorAll('[data-k]').forEach(b => b.onclick = () => { st.kind = b.dataset.k; st.week = null; shell(); });
     ({ daily, weekly, monthly, insights, room: roomView, roster, history, settings }[st.tab])();
@@ -73,7 +74,7 @@
         <div class="scroll"><table class="dt cards"><tr><th>ห้อง</th>${items.map(i => `<th>${i.id}</th>`).join('')}<th>รวม</th></tr>`;
       for (let r = 1; r <= CR.ROOMS; r++) {
         const x = by[r];
-        if (x) h += `<tr data-key="${esc(x.key)}"><td class="l"><b>${st.level}/${r}</b></td>${items.map(i => `<td data-l="${i.id}"><input data-i="${i.id}" data-max="${i.max}" value="${x.scores[i.id]}" inputmode="numeric"></td>`).join('')}<td data-l="รวม"><b class="tt">${x.total}</b></td></tr>`;
+        if (x) h += `<tr data-key="${esc(x.key)}"><td class="l"><b>${st.level}/${r}</b></td>${items.map(i => `<td data-l="${i.id}"><input data-i="${i.id}" data-max="${i.max}" value="${x.scores[i.id] == null ? '' : x.scores[i.id]}" inputmode="numeric"></td>`).join('')}<td data-l="รวม"><b class="tt">${x.total}</b></td></tr>`;
         else h += `<tr><td class="l"><b>${st.level}/${r}</b></td><td colspan="${items.length + 1}" class="na l">${un[r] ? esc(un[r].reason + (un[r].text ? ' · ' + un[r].text : '')) : NA}</td></tr>`;
       }
       document.getElementById('tbl').outerHTML = h + '</table></div><div class="row"><button class="btn sec" id="hist" style="margin-top:12px">ดูประวัติการแก้ไข</button><button class="btn warn" id="dpdf" style="margin-top:12px">PDF ม.1–6</button><button class="btn sec" id="dimg" style="margin-top:12px">รูปภาพ ม.' + st.level + '</button></div><div id="hl"></div>';
