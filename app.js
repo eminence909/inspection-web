@@ -16,6 +16,8 @@
   const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const MONTHS = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
   const DAYS = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'];
+  const DS = ['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.'];
+  function thShort(d) { const [y, m, dd] = d.split('-').map(Number); return `${DS[new Date(y, m - 1, dd).getDay()]} ${dd} ${MONTHS[m - 1]} ${String(y + 543).slice(-2)}`; }
   function thDate(d) { const [y, m, dd] = d.split('-').map(Number); const w = new Date(y, m - 1, dd).getDay(); return `วัน${DAYS[w]}ที่ ${dd} ${MONTHS[m - 1]} ${y + 543}`; }
   function toast(m) { const t = document.getElementById('toast'); t.textContent = m; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2400); }
   function kindName() { return S.kind === 'classroom' ? 'ตรวจห้องเรียน' : 'ตรวจเขตพื้นที่'; }
@@ -157,6 +159,7 @@
 `;
     bindQ(); bindDrafts();
     S.wk = S.wk || 'classroom'; let firstWall = true;
+    if (S.wo === undefined) { try { S.wo = localStorage.getItem('wallOpen') === '1'; } catch (e) { S.wo = false; } }
     const drawWall = (r, cnt) => {
       const el = document.getElementById('wall'); if (!el) return;
       const L = CR.LEVELS, RM = CR.ROOMS, k = S.wk, st = {}; S.wr = r;
@@ -164,8 +167,12 @@
       const n = r ? Object.keys(st).length : (cnt ? (Number(cnt[k]) || 0) + (Number(cnt['un' + k]) || 0) : null);
       let cells = '', i = 0;
       L.forEach(l => { cells += `<span class="wl">ม.${l}</span>`; for (let m = 1; m <= RM; m++) { const v = st[l + '|' + m] || ''; cells += `<button type="button" class="wc ${v}" style="--i:${i++}" data-l="${l}" data-r="${m}" aria-label="ม.${l}/${m} ${v === 'd' ? 'ตรวจแล้ว' : v === 'u' ? 'ตรวจไม่ได้' : 'ยังไม่ตรวจ'}">${m}</button>`; } });
+      const pct = n == null ? 0 : Math.min(100, Math.round(n / 72 * 100));
       el.innerHTML = `<div class="wh"><div class="wn">${n == null ? '-' : n >= 72 ? 'ครบ' : n}<small>${n != null && n < 72 ? '/72' : ''}</small></div><div class="wt"><button type="button" data-k="classroom" class="${k === 'classroom' ? 'on' : ''}">ห้องเรียน</button><button type="button" data-k="zone" class="${k === 'zone' ? 'on' : ''}">เขตพื้นที่</button></div></div>
-        <div class="wg${firstWall ? ' in' : ''}">${cells}</div><div class="wk"><span><i class="wc d"></i>ตรวจแล้ว</span><span><i class="wc u"></i>ตรวจไม่ได้</span><span><i class="wc"></i>ยังไม่ตรวจ</span></div>`;
+        <div class="prog wprog"><i style="width:${pct}%"></i></div><button type="button" class="wtg" aria-expanded="${S.wo ? 'true' : 'false'}">${S.wo ? 'ซ่อนผังห้อง' : 'ดูผังห้อง / ค้นหาห้อง'}</button>
+        <div class="wbody"><div class="wg${firstWall ? ' in' : ''}">${cells}</div><div class="wk"><span><i class="wc d"></i>ตรวจแล้ว</span><span><i class="wc u"></i>ตรวจไม่ได้</span><span><i class="wc"></i>ยังไม่ตรวจ</span></div></div>`;
+      const wbox = el.parentNode; wbox.classList.toggle('closed', !S.wo);
+      const tg = el.querySelector('.wtg'); if (tg) tg.onclick = () => { S.wo = !S.wo; try { localStorage.setItem('wallOpen', S.wo ? '1' : '0'); } catch (e) {} drawWall(r, cnt); };
       firstWall = false;
       el.querySelectorAll('.wt button').forEach(b => b.onclick = () => { S.wk = b.dataset.k; drawWall(r, cnt); });
       el.querySelectorAll('.wc[data-l]').forEach(b => b.onclick = () => openRoom(k, b.dataset.l, b.dataset.r));
@@ -338,7 +345,7 @@
     catch (e) { const c = lsGet(key); if (e.net && c) return { d: c, old: true }; throw e; }
   }
   async function viewRoster() {
-    bar(); header('ดูเวร', thDate(S.date), home); setTab('roster'); loading(); const my = NAV;
+    bar(); header('ดูเวร', thShort(S.date), home); setTab('roster'); loading(); const my = NAV;
     try {
       const [r1, r2] = await Promise.all([cached('ro|' + S.date, 'rosterGet', { date: S.date }), cached('rdates', 'rosterDates', {}).catch(() => ({ d: [], old: false }))]);
       if (my !== NAV) return;
@@ -360,10 +367,19 @@
 
   // ---------- 2 เลือกระดับชั้น ----------
   function pickLevel() {
-    bar(); header(kindName(), thDate(S.date), home); setTab(S.kind);
+    bar(); header(kindName(), thShort(S.date), home); setTab(S.kind); const my = NAV, k = S.kind, d = S.date;
     $app.innerHTML = '<div class="card"><h2>เลือกระดับชั้น</h2><div class="grid" id="lv"></div></div>';
     const g = document.getElementById('lv');
-    CR.LEVELS.forEach(l => { const b = document.createElement('button'); b.className = 'tile'; b.textContent = 'ม.' + l; b.onclick = () => { S.level = String(l); enterLevel(); }; g.appendChild(b); });
+    CR.LEVELS.forEach(l => { const b = document.createElement('button'); b.className = 'tile lvt'; b.dataset.l = l; b.innerHTML = 'ม.' + l + '<small>&nbsp;</small><span class="lvbar"><i></i></span>'; b.onclick = () => { S.level = String(l); enterLevel(); }; g.appendChild(b); });
+    cached('ds|' + d, 'dayStats', { date: d }).then(x => {
+      if (my !== NAV || !x || !x.d || !x.d.inspections) return;
+      CR.LEVELS.forEach(l => {
+        const n = x.d.inspections.filter(i => i.kind === k && i.level === String(l)).length + x.d.unavail.filter(i => i.kind === k && i.level === String(l)).length;
+        const t = g.querySelector('.lvt[data-l="' + l + '"]'); if (!t) return;
+        t.querySelector('small').textContent = n >= CR.ROOMS ? 'ครบ' : n + '/' + CR.ROOMS + ' ห้อง';
+        t.querySelector('i').style.width = Math.min(100, Math.round(n / CR.ROOMS * 100)) + '%'; if (n >= CR.ROOMS) t.classList.add('full');
+      });
+    }).catch(() => {});
   }
   async function enterLevel() {
     loading(); const my = NAV;
@@ -387,7 +403,7 @@
   // ---------- 3 ผู้ตรวจ + อาคารเปิด/ปิด ----------
   let tmp = null;
   function teamStep() {
-    bar(); header(`ม.${S.level} · ผู้ตรวจ`, kindName() + ' · ' + thDate(S.date), S.team ? rooms : pickLevel, true);
+    bar(); header(`ม.${S.level} · ผู้ตรวจ`, kindName() + ' · ' + thShort(S.date), S.team ? rooms : pickLevel, true);
     tmp = { names: (S.team ? S.team.names.slice() : (S.rosterNames || []).slice(0, 3)), open: S.team ? S.team.buildingOpen : '', un: {} };
     S.status.unavail.forEach(u => tmp.un[u.room] = { reason: u.reason, text: u.text });
     draw();
@@ -485,7 +501,7 @@
   const bandCls = t => t >= 80 ? 'b-g' : t >= 70 ? 'b-s' : t >= 60 ? 'b-b' : t >= 50 ? 'b-p' : 'b-f';
   // ---------- 4 รายการห้อง ----------
   function rooms() {
-    bar(); header(`ม.${S.level} · เลือกห้อง`, kindName() + ' · ' + thDate(S.date), pickLevel);
+    bar(); header(`ม.${S.level} · เลือกห้อง`, kindName() + ' · ' + thShort(S.date), pickLevel);
     const done = {}, un = {};
     S.status.done.forEach(d => done[d.room] = d); S.status.unavail.forEach(u => un[u.room] = u);
     getQ().forEach(x => { const p = x.params; if (p.kind === S.kind && p.date === S.date && String(p.level) === String(S.level) && !(done[p.room] && !done[p.room].pending)) done[p.room] = { room: p.room, total: K.dailyTotals(S.kind, p.scores).total, pending: true, scores: p.scores }; });

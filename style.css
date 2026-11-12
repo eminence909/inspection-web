@@ -780,3 +780,31 @@ a:not(.btn):not(.icon):not(.adminlink),.info,details summary{color:var(--b)}
 .muted a{color:var(--b)}
 /* สถานะยังคงตามความหมาย: เขียว = ตรวจแล้ว */
 .btn:disabled,.btn[disabled],html[data-theme=light] .btn:disabled{background:var(--card2)!important;color:var(--mut)!important;border-color:var(--hair)!important;opacity:1;cursor:not-allowed}
+
+/* ===== รอบปรับ: ผังพับได้ ปุ่มเลือกชั้นโชว์ความคืบหน้า ช่องห้องเรียบ หัวกระดาษประกาศ ===== */
+.wall.closed .wbody,.wall.closed .ws{display:none}
+.wprog{margin:12px 0 4px;height:4px}
+.wtg{font:inherit;font-size:14px;color:var(--b);background:none;border:0;border-bottom:1px solid currentColor;padding:2px 0;margin:6px 0 0;cursor:pointer}
+@media(min-width:1000px){.wall.closed .wbody{display:block}.wall.closed .ws{display:flex}.wtg{display:none}.wprog{display:none}}
+.wall.closed{margin-bottom:20px}
+.wn{font-size:clamp(48px,15vw,72px)}
+@media(min-width:1000px){.wn{font-size:112px}}
+/* ปุ่มเลือกชั้น */
+.lvt{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;position:relative;padding:14px 6px 18px;font-family:var(--serif);font-weight:800;font-size:22px}
+.lvt small{font-family:var(--sans);font-size:13px;font-weight:400;color:var(--mut)}
+.lvbar{position:absolute;left:0;right:0;bottom:0;height:4px;background:var(--hair)}
+.lvbar i{display:block;height:100%;width:0;background:var(--ok);transition:width .3s}
+.lvt.full small{color:var(--ok);font-weight:700}
+/* ช่องห้อง: พื้นเรียบ เขียวอ่อน = ตรวจแล้ว สีเหรียญเป็นแถบซ้ายเท่านั้น */
+html body .tile.done,html[data-theme=light] .tile.done,html[data-theme=light] .tile.done.b-g,html[data-theme=light] .tile.done.b-s,html[data-theme=light] .tile.done.b-b,html[data-theme=light] .tile.done.b-p,html[data-theme=light] .tile.done.b-f{background:color-mix(in srgb,var(--ok) 20%,transparent);border-color:var(--ok);color:var(--ink)}
+.tile.done small{color:var(--mut)}
+.tile.done.b-g{box-shadow:inset 5px 0 0 #e3b341}.tile.done.b-s{box-shadow:inset 5px 0 0 #aab3b9}.tile.done.b-b{box-shadow:inset 5px 0 0 #d08a54}.tile.done.b-f{box-shadow:inset 5px 0 0 var(--r)}
+/* หัวกระดาษหน้าประกาศผล */
+.lh{border-top:3px solid var(--gold-line);padding:16px 0 12px;border-bottom:1px solid var(--hair);margin-bottom:14px}
+.lhr{display:flex;align-items:center;gap:12px}
+.lhl{width:56px;height:56px;border-radius:50%!important;flex:none}
+.lhr b{display:block;font-family:var(--serif);font-weight:800;font-size:19px;line-height:1.3}
+.lhr span{display:block;color:var(--mut);font-size:14px}
+.lh h1{font-family:var(--serif);font-weight:800;font-size:clamp(32px,10vw,48px);line-height:1.25;margin:16px 0 6px;letter-spacing:0}
+.lh p{margin:0;color:var(--mut);font-size:15px}
+.lh h1{font-size:clamp(26px,7.8vw,44px)}

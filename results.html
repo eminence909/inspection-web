@@ -11,8 +11,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=Anuphan:wght@500;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20261111t">
-<script src="font.js?v=20261111t"></script>
+<link rel="stylesheet" href="style.css?v=20261111u">
+<script src="font.js?v=20261111u"></script>
 <style>
 .rtabs{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px}
 .rtabs button{flex:1 1 120px;font:inherit;padding:11px 12px;border-radius:14px;border:1px solid var(--line);background:rgba(0,0,0,.25);color:var(--ink);cursor:pointer;font-weight:600}
@@ -35,8 +35,8 @@
 </header>
 <main id="app"><div class="sk" role="status" aria-label="กำลังโหลด"><i style="height:200px"></i><i style="height:52px"></i><i style="height:140px"></i></div></main>
 <div id="toast" role="status"></div>
-<script src="fx.js?v=20261111t" defer></script>
-<script src="config.js?v=20261111t"></script>
+<script src="fx.js?v=20261111u" defer></script>
+<script src="config.js?v=20261111u"></script>
 <script>
 (function () {
   const $app = document.getElementById('app');
@@ -56,12 +56,14 @@
     }
     draw();
   }
+  const LHM = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+  function lhDate(s) { const m = /(\d{4})-(\d{2})-(\d{2})/.exec(String(s)); return m ? (+m[3]) + ' ' + LHM[+m[2] - 1] + ' ' + (+m[1] + 543) : ''; }
   function draw() {
     const items = LIST.filter(x => x.kind === S.kind && x.type === S.type);
     if (!items.some(x => x.ref === S.ref)) S.ref = items[0] ? items[0].ref : null;
     const cur = items.find(x => x.ref === S.ref);
     let h = (old ? '<div class="note" style="margin-bottom:10px">ออฟไลน์: แสดงผลที่จำไว้ล่าสุด</div>' : '') +
-      `<section class="hero pub-hero"><div class="bigword">WIN</div><div class="eyebrow">ประกาศผลอย่างเป็นทางการ</div><h1>ผลการประเมิน<br>${S.kind === 'classroom' ? 'ห้องเรียนสะอาด' : 'เขตพื้นที่รับผิดชอบ'}</h1><p>แสดงอันดับและเหรียญของแต่ละห้อง</p></section>
+      `<section class="lh"><div class="lhr"><img class="lhl" src="logo-128.png" alt="ตราโรงเรียนศีขรภูมิพิสัย" width="56" height="56"><div><b>โรงเรียนศีขรภูมิพิสัย</b><span>สภานักเรียน</span></div></div><h1>ประกาศผลการประเมิน<br>${S.kind === 'classroom' ? 'ห้องเรียนสะอาด' : 'เขตพื้นที่รับผิดชอบ'}</h1><p>${cur && cur.publishedAt ? 'ประกาศ ณ วันที่ ' + lhDate(cur.publishedAt) : 'แสดงอันดับและเหรียญของแต่ละห้อง'}</p></section>
       <div class="rtabs" id="tk"><button data-v="classroom" class="${S.kind === 'classroom' ? 'on' : ''}">ห้องเรียน</button><button data-v="zone" class="${S.kind === 'zone' ? 'on' : ''}">เขตพื้นที่</button></div>
       <div class="rtabs" id="tt"><button data-v="week" class="${S.type === 'week' ? 'on' : ''}">รายสัปดาห์</button><button data-v="month" class="${S.type === 'month' ? 'on' : ''}">รายเดือน</button></div>`;
     if (!cur) { $app.innerHTML = h + '<div class="card"><div class="note">ยังไม่มีผลที่ประกาศในหมวดนี้</div></div>'; bind(); return; }
