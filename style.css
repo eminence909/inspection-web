@@ -695,3 +695,25 @@ body{font-weight:400}
 .clr{display:flex;justify-content:flex-end;margin:0 0 10px}
 .clr .btn{padding:7px 14px;font-size:14px;font-weight:500}
 .clr .btn.arm{background:var(--r);border-color:var(--r);color:#fff}
+
+/* ===== แก้ตามรีวิว: ภาษาไทยอ่านง่ายขึ้น ผังไม่ล้น เส้นไม่ซ้อน ===== */
+.hero h1,html[data-theme=light] .hero h1,.mcard b,.sp h2,.cat,.tot{line-height:1.25;letter-spacing:0}
+.hero h1{margin-bottom:10px}
+.mcard b{line-height:1.2}
+.ssc{line-height:1.15}
+.hero{border-bottom:0;padding-bottom:6px}
+.menu,.menu.hl-menu{border-top:1px solid var(--ink)}
+.wc{min-height:0;min-width:0;border-color:color-mix(in srgb,var(--mut) 65%,transparent)}
+.wc.d{border-color:var(--ok)}
+.wc.u{border-color:var(--mut)}
+@media(max-width:340px){.wg{grid-template-columns:24px repeat(12,1fr);gap:2px}.wc{font-size:10px}}
+.muted,.hero p,small,.wk,.lvc small{font-weight:400}
+.hero p{font-weight:300;font-size:15px}
+.dtw{position:relative;margin-top:2px}
+.dtv{display:flex;justify-content:space-between;align-items:center;font-size:18px;font-weight:600;padding:10px 0;border-bottom:1px solid var(--ink)}
+.dtv::after{content:"เปลี่ยนวันที่";font-size:13px;font-weight:400;color:var(--mut)}
+.dtw input[type=date]{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;border:0}
+.dtw:focus-within .dtv{outline:2px solid var(--ink);outline-offset:2px}
+@media(max-width:899px){#nav{-webkit-mask-image:linear-gradient(90deg,#000 90%,transparent);mask-image:linear-gradient(90deg,#000 90%,transparent)}}
+@media(min-width:1000px){.home{grid-template-rows:auto auto 1fr;grid-template-areas:"hero wall" "date wall" "menu wall" "menu stats"}.hl-menu{align-self:start}}
+.sheet .sp:focus{outline:0}

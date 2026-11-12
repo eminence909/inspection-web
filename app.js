@@ -147,8 +147,7 @@
         <p>${esc(S.init.term || '')}<br>สภานักเรียน ${esc(S.init.schoolName || '')}</p></section>
       <div class="wall"><div id="wall"></div><form class="ws" id="ws" autocomplete="off"><input type="text" id="wsq" placeholder="ค้นหาห้อง เช่น 3/5" aria-label="ค้นหาห้อง" maxlength="6"><button type="submit" class="btn sec">ค้นหา</button></form></div>
       <div class="card hl-date"><label for="dt">วันที่ตรวจ</label>
-        <input type="date" id="dt" value="${S.date}" max="${S.init.today}">
-        <div class="muted" id="dtl" style="margin-top:6px">${thDate(S.date)}</div><div id="hol"></div></div>
+        <div class="dtw"><div class="dtv" id="dtl">${thDate(S.date)}</div><input type="date" id="dt" value="${S.date}" max="${S.init.today}" aria-label="วันที่ตรวจ"></div><div id="hol"></div></div>
       <div class="menu hl-menu">
         <button class="mcard" data-k="zone"><span><b>ตรวจเขตพื้นที่</b><small>Sripisai Clean Zone</small></span><span class="go">›</span></button>
         <button class="mcard" data-k="classroom"><span><b>ตรวจห้องเรียน</b><small>The SMART Classroom</small></span><span class="go">›</span></button>
@@ -172,18 +171,19 @@
       el.querySelectorAll('.wc[data-l]').forEach(b => b.onclick = () => openRoom(k, b.dataset.l, b.dataset.r));
     };
     const KN2 = { classroom: 'ห้องเรียน', zone: 'เขตพื้นที่' };
-    const closeSheet = () => { const s = document.getElementById('sheet'); if (s) s.remove(); document.removeEventListener('keydown', escSheet); };
+    const closeSheet = () => { const s = document.getElementById('sheet'); if (s) s.remove(); document.removeEventListener('keydown', escSheet); const q = document.getElementById('wsq'); if (q && s) q.blur(); };
     const escSheet = e => { if (e.key === 'Escape') closeSheet(); };
     const openRoom = (k, l, m) => {
       closeSheet();
       const r = S.wr, ins = r && r.inspections.find(x => x.kind === k && x.level === String(l) && x.room === String(m)), un = r && r.unavail.find(x => x.kind === k && x.level === String(l) && x.room === String(m));
       const st = ins ? 'ตรวจแล้ว' : un ? 'ตรวจไม่ได้' : (r ? 'ยังไม่ตรวจ' : 'ยังไม่มีข้อมูลสถานะ');
       const sh = document.createElement('div'); sh.id = 'sheet'; sh.className = 'sheet';
-      sh.innerHTML = `<div class="sb" data-x></div><div class="sp" role="dialog" aria-label="รายละเอียดห้อง"><div class="sk2">${KN2[k]} · ${thDate(S.date)}</div><h2>ม.${l}/${m}</h2><div class="sst ${ins ? 'd' : un ? 'u' : ''}">${st}</div>
+      sh.innerHTML = `<div class="sb" data-x></div><div class="sp" role="dialog" aria-modal="true" aria-label="รายละเอียดห้อง"><div class="sk2">${KN2[k]} · ${thDate(S.date)}</div><h2>ม.${l}/${m}</h2><div class="sst ${ins ? 'd' : un ? 'u' : ''}">${st}</div>
         ${ins ? `<div class="ssc">${ins.total}<small>/100</small></div><div class="muted" id="shx">กำลังโหลดผู้ตรวจ...</div>` : ''}${un ? `<div class="muted">${esc(un.reason || 'ไม่ระบุเหตุผล')}</div>` : ''}
         <div class="sact">${ins ? '' : '<button class="btn" data-go="1">ไปตรวจห้องนี้</button>'}<button class="btn sec" data-lv="1">เปิดชั้น ม.${l}</button><button class="btn sec" data-x>ปิด</button></div></div>`;
       document.body.appendChild(sh); document.addEventListener('keydown', escSheet);
       sh.querySelectorAll('[data-x]').forEach(b => b.onclick = closeSheet);
+      { const cb = sh.querySelector('.sact [data-x]'); if (cb) cb.focus(); }
       const go = resume => { closeSheet(); S.kind = k; S.level = String(l); S._resume = resume ? String(m) : null; setTab(k); enterLevel(); };
       const g = sh.querySelector('[data-go]'); if (g) g.onclick = () => go(true);
       sh.querySelector('[data-lv]').onclick = () => go(false);
@@ -213,6 +213,7 @@
     const holNote = () => { const h = ((S.init && S.init.holidays) || []).find(x => x.d === S.date); const el = document.getElementById('hol'); if (el) el.innerHTML = h ? '<div class="note" style="margin-top:8px"><b>วันนี้เป็นวันหยุด / ไม่มีการตรวจ</b>' + (h.r ? ' (' + esc(h.r) + ')' : '') + '</div>' : ''; };
     holNote();
     const dt = document.getElementById('dt');
+    dt.addEventListener('click', () => { try { if (dt.showPicker) dt.showPicker(); } catch (e) {} });
     dt.onchange = () => {
       if (!dt.value || dt.value > S.init.today) { dt.value = S.init.today; toast('เลือกวันที่ล่วงหน้าไม่ได้'); }
       S.date = dt.value; document.getElementById('dtl').textContent = thDate(S.date); holNote(); loadStats();
