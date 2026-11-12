@@ -145,13 +145,13 @@
       <section class="hero hl-hero">
         <h1>ตรวจห้องเรียน<br>และเขตพื้นที่</h1>
         <p>${esc(S.init.term || '')}<br>สภานักเรียน ${esc(S.init.schoolName || '')}</p></section>
-      <div class="wall"><div id="wall"></div><form class="ws" id="ws" autocomplete="off"><input type="text" id="wsq" placeholder="ค้นหาห้อง เช่น 3/5" aria-label="ค้นหาห้อง" maxlength="6"><button type="submit" class="btn sec">ค้นหา</button></form></div>
       <div class="card hl-date"><label for="dt">วันที่ตรวจ</label>
         <div class="dtw"><div class="dtv" id="dtl">${thDate(S.date)}</div><input type="date" id="dt" value="${S.date}" max="${S.init.today}" aria-label="วันที่ตรวจ"></div><div id="hol"></div></div>
       <div class="menu hl-menu">
         <button class="mcard" data-k="zone"><span><b>ตรวจเขตพื้นที่</b><small>Sripisai Clean Zone</small></span><span class="go">›</span></button>
         <button class="mcard" data-k="classroom"><span><b>ตรวจห้องเรียน</b><small>The SMART Classroom</small></span><span class="go">›</span></button>
       </div>
+      <div class="wall"><div id="wall"></div><form class="ws" id="ws" autocomplete="off"><input type="text" id="wsq" placeholder="ค้นหาห้อง เช่น 3/5" aria-label="ค้นหาห้อง" maxlength="6"><button type="submit" class="btn sec">ค้นหา</button></form></div>
       <div id="dstats" class="hr-stats"></div>
       </div>
 `;

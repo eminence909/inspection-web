@@ -5,7 +5,7 @@
   function apply() { document.documentElement.style.setProperty('--fs', L[i][1]); var b = document.getElementById('fsz'); if (b) b.textContent = L[i][0]; }
   apply();
   // โหมดสว่าง/มืด (จำค่าไว้ในเครื่อง) ตั้งก่อนวาดหน้าเพื่อไม่ให้กะพริบ
-  var th = 'dark'; try { th = localStorage.getItem('theme') === 'light' ? 'light' : 'dark'; } catch (e) {}
+  var th = 'dark'; try { var sv = localStorage.getItem('theme'); if (sv === 'light' || sv === 'dark') th = sv; else if (window.matchMedia && matchMedia('(prefers-color-scheme: light)').matches) th = 'light'; } catch (e) {}
   function applyTheme() {
     document.documentElement.setAttribute('data-theme', th);
     var m = document.querySelector('meta[name=theme-color]'); if (m) m.setAttribute('content', th === 'light' ? '#f3f3f1' : '#0a0a0b');
